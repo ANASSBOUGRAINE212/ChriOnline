@@ -1,120 +1,59 @@
 package server;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.Socket;
+import protocol.request;
+import protocol.response;
+import server.handlers.authHandler;
 
 public class clientHandler implements Runnable {
     private Socket clientSocket;
-    private BufferedReader in;
-    private DataOutputStream out;
+    private ObjectInputStream in;
+    private ObjectOutputStream out;
     
     public clientHandler(Socket socket) {
         this.clientSocket = socket;
         try {
-            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            this.out = new DataOutputStream(socket.getOutputStream());
+            this.out = new ObjectOutputStream(socket.getOutputStream());
+            this.in = new ObjectInputStream(socket.getInputStream());
+            System.out.println("👤 Client session started for: " + socket.getRemoteSocketAddress());
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("❌ Error setting up client connection: " + e.getMessage());
         }
     }
     
     @Override
     public void run() {
         try {
-            String clientMessage;
-            while ((clientMessage = in.readLine()) != null) {
-                System.out.println("📨 Received: " + clientMessage);
+            while (true) {
+                // Read request object from client
+                request clientRequest = (request) in.readObject();
+                System.out.println("📨 Received request: " + clientRequest.getType());
                 
-                // Parse the message (format: "ACTION|token|param1|param2")
-                String[] parts = clientMessage.split("\\|");
-                String action = parts[0];
+                // Process the request using authHandler
+                response serverResponse = authHandler.handle(clientRequest);
                 
-                String response = "";
-                
-                switch (action) {
-                    case "GET_USER_INFO":
-                        if (parts.length >= 2) {
-                            response = handleGetUserInfo(parts[1]);
-                        } else {
-                            response = "ERROR|Missing token";
-                        }
-                        break;
-                    case "UPDATE_PROFILE":
-                        if (parts.length >= 4) {
-                            response = handleUpdateProfile(parts[1], parts[2], parts[3]);
-                        } else {
-                            response = "ERROR|Missing parameters";
-                        }
-                        break;
-                    case "CHANGE_PASSWORD":
-                        if (parts.length >= 4) {
-                            response = handleChangePassword(parts[1], parts[2], parts[3]);
-                        } else {
-                            response = "ERROR|Missing parameters";
-                        }
-                        break;
-                    default:
-                        response = "ERROR|Unknown command";
-                        break;
-                }
-                
-                System.out.println("📤 Sending: " + response);
-                out.writeBytes(response + "\n");
+                // Send response object back to client
+                System.out.println("📤 Sending response: " + (serverResponse.isSuccess() ? "SUCCESS" : "ERROR"));
+                out.writeObject(serverResponse);
+                out.flush();
             }
-        } catch (IOException e) {
-            System.out.println("🧹 Client disconnected: " + e.getMessage());
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("🧹 Client session cleaned up: " + clientSocket.getRemoteSocketAddress());
         } finally {
-            try {
-                if (in != null) in.close();
-                if (out != null) out.close();
-                if (clientSocket != null) clientSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            cleanup();
         }
     }
     
-    private String handleGetUserInfo(String token) {
+    private void cleanup() {
         try {
-            // Simple mock response for now
-            if ("test-token-alice".equals(token)) {
-                return "SUCCESS|Username: alice\nEmail: alice@test.com\nAddress: 123 Main St\nPhone: 555-1234\nRole: CLIENT";
-            } else {
-                return "ERROR|Invalid token";
-            }
-        } catch (Exception e) {
-            return "ERROR|" + e.getMessage();
-        }
-    }
-    
-    private String handleUpdateProfile(String token, String address, String phone) {
-        try {
-            if ("test-token-alice".equals(token)) {
-                return "SUCCESS|Profile updated successfully";
-            } else {
-                return "ERROR|Invalid token";
-            }
-        } catch (Exception e) {
-            return "ERROR|" + e.getMessage();
-        }
-    }
-    
-    private String handleChangePassword(String token, String oldPass, String newPass) {
-        try {
-            if ("test-token-alice".equals(token)) {
-                if ("hashedpass".equals(oldPass)) {
-                    return "SUCCESS|Password changed successfully";
-                } else {
-                    return "ERROR|Old password incorrect";
-                }
-            } else {
-                return "ERROR|Invalid token";
-            }
-        } catch (Exception e) {
-            return "ERROR|" + e.getMessage();
+            if (in != null) in.close();
+            if (out != null) out.close();
+            if (clientSocket != null) clientSocket.close();
+        } catch (IOException e) {
+            System.out.println("⚠️ Error during cleanup: " + e.getMessage());
         }
     }
 }
