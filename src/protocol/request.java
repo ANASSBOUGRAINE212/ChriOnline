@@ -13,6 +13,8 @@ public class request implements Serializable {
     public static final String GET_PROFILE      = "GET_PROFILE";
     public static final String UPDATE_PROFILE   = "UPDATE_PROFILE";
     public static final String CHANGE_PASSWORD  = "CHANGE_PASSWORD";
+    public static final String UPDATE_PRODUCT   = "UPDATE_PRODUCT";
+    public static final String LIST_PRODUCTS    = "LIST_PRODUCTS";
     
     public static final String SUCCESS          = "SUCCESS";
     public static final String ERROR            = "ERROR";

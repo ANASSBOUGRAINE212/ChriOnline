@@ -26,9 +26,10 @@ public class authMenu {
             System.out.println("─────────────────────");
             System.out.println("1. 🔑 Login");
             System.out.println("2. 📝 Register");
+            System.out.println("3. 🛍️  View Products (Guest)");
             System.out.println("0. 🚪 Exit");
             System.out.println("─────────────────────");
-            System.out.print("Please select an option (0-2): ");
+            System.out.print("Please select an option (0-3): ");
             
             try {
                 choice = scanner.nextInt();
@@ -43,11 +44,14 @@ public class authMenu {
                     case 2:
                         handleRegister(connection, scanner);
                         break;
+                    case 3:
+                        showGuestProducts(connection, scanner);
+                        break;
                     case 0:
                         System.out.println("\n👋 Goodbye!");
                         return false;
                     default:
-                        System.out.println("\n❌ Invalid choice! Please select 0-2.");
+                        System.out.println("\n❌ Invalid choice! Please select 0-3.");
                         break;
                 }
             } catch (Exception e) {
@@ -82,6 +86,9 @@ public class authMenu {
             String[] parts = res.getMessage().split("\\|");
             if (parts.length > 1) {
                 connection.setSessionToken(parts[1]); // Set the received token
+            }
+            if (parts.length > 2) {
+                connection.setUserRole(parts[2]); // Set the user role
             }
             System.out.println("✅ " + parts[0]);
             System.out.println("🎉 Welcome back, " + username + "!");
@@ -140,6 +147,8 @@ public class authMenu {
         System.out.println("\n🌟 Welcome to ChriOnline User Portal! 🌟");
         System.out.println("═══════════════════════════════════════");
         
+        boolean isAdmin = connection.isAdmin();
+        
         int choice = 0;
         do {
             System.out.println("\n📋 Main Menu");
@@ -148,10 +157,14 @@ public class authMenu {
             System.out.println("2. 📊 Get my profile");
             System.out.println("3. ✏️  Update my profile");
             System.out.println("4. 🔒 Change password");
-            System.out.println("5. 🚪 Logout");
+            System.out.println("5. 🛍️  View Products");
+            if (isAdmin) {
+                System.out.println("6. 🔧 Product Management (Admin)");
+            }
+            System.out.println("7. 🚪 Logout");
             System.out.println("0. 🚪 Exit");
             System.out.println("─────────────");
-            System.out.print("Please select an option (0-5): ");
+            System.out.print("Please select an option: ");
             
             try {
                 choice = scanner.nextInt();
@@ -171,13 +184,23 @@ public class authMenu {
                         changePassword(connection, scanner);
                         break;
                     case 5:
+                        showProductList(connection, scanner);
+                        break;
+                    case 6:
+                        if (isAdmin) {
+                            showProductMenu(connection, scanner);
+                        } else {
+                            System.out.println("\n❌ Invalid choice!");
+                        }
+                        break;
+                    case 7:
                         handleLogout(connection);
                         return; // Return to auth menu
                     case 0:
                         System.out.println("\n👋 Thank you for using ChriOnline! Goodbye!");
                         break;
                     default:
-                        System.out.println("\n❌ Invalid choice! Please select a number between 0-5.");
+                        System.out.println("\n❌ Invalid choice!");
                         break;
                 }
             } catch (Exception e) {
@@ -186,7 +209,7 @@ public class authMenu {
                 choice = -1; // continue loop
             }
             
-            if (choice != 0 && choice != 5) {
+            if (choice != 0 && choice != 7) {
                 System.out.println("\nPress Enter to continue...");
                 scanner.nextLine();
             }
@@ -306,4 +329,44 @@ public class authMenu {
             System.out.println("   Please check your current password and try again.");
         }
     }
+    
+    private void showGuestProducts(clientConnection connection, Scanner scanner) {
+        System.out.println("\n🛍️  Product Catalog (Guest Mode)");
+        System.out.println("═══════════════════════════════════");
+        System.out.println("📦 Browse our products below:");
+        System.out.println("⚠️  To view details, please login or register first.\n");
+        
+        response res = connection.listProducts();
+        
+        if (res.isSuccess()) {
+            System.out.println(res.getMessage().replace("\\n", "\n"));
+            System.out.println("\n🔒 Login or register to access more features!");
+            System.out.println("Press Enter to return to authentication menu...");
+            scanner.nextLine();
+        } else {
+            System.out.println("❌ Unable to load products: " + res.getMessage());
+        }
+    }
+    
+    private void showProductList(clientConnection connection, Scanner scanner) {
+        System.out.println("\n🛍️  Product Catalog");
+        System.out.println("═══════════════════════════════════");
+        
+        response res = connection.listProducts();
+        
+        if (res.isSuccess()) {
+            System.out.println(res.getMessage().replace("\\n", "\n"));
+        } else {
+            System.out.println("❌ Unable to load products: " + res.getMessage());
+        }
+        
+        System.out.println("\nPress Enter to return to main menu...");
+        scanner.nextLine();
+    }
+    
+    private void showProductMenu(clientConnection connection, Scanner scanner) {
+        productMenu productMenu = new productMenu();
+        productMenu.show(connection, scanner);
+    }
+    
 }

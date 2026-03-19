@@ -44,7 +44,6 @@ public class user {
     public void setPhone(String phone){this.phone = phone;}
     public void setRole(Role role){this.role = role;}
     
- // User.java
     public String getUserInfo() {
         return String.format(
             "👤 Username: %s\n" +
@@ -59,7 +58,32 @@ public class user {
             role != null ? role : "Not set"
         );
     }
-
+    
+    // DTO methods
+    public static class UserDTO implements java.io.Serializable {
+        public String userId;
+        public String username;
+        public String email;
+        public String passwordHash;
+        public String address;
+        public String phone;
+        public String role;
+    }
+    
+    public UserDTO toDTO() {
+        UserDTO dto = new UserDTO();
+        dto.userId = this.userId;
+        dto.username = this.username;
+        dto.email = this.email;
+        dto.passwordHash = this.passwordHash;
+        dto.address = this.address;
+        dto.phone = this.phone;
+        dto.role = this.role != null ? this.role.name() : null;
+        return dto;
+    }
+    
+    public static user fromDTO(UserDTO dto) {
+        Role role = dto.role != null ? Role.valueOf(dto.role) : Role.CLIENT;
+        return new user(dto.userId, dto.username, dto.email, dto.passwordHash, dto.address, dto.phone, role);
+    }
 }
-
-

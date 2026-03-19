@@ -12,6 +12,7 @@ public class clientConnection {
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private String sessionToken;
+    private String userRole; // Store user role after login
 
     public clientConnection(String host, int port) {
         System.out.println("🔌 Connecting to " + host + ":" + port);
@@ -71,6 +72,18 @@ public class clientConnection {
         System.out.println("🎫 Session token updated");
     }
     
+    public void setUserRole(String role) {
+        this.userRole = role;
+    }
+    
+    public String getUserRole() {
+        return this.userRole;
+    }
+    
+    public boolean isAdmin() {
+        return "ADMIN".equals(this.userRole);
+    }
+    
     public response getUserInfo() {
         request req = new request(request.GET_USER_INFO);
         req.setToken(sessionToken);
@@ -96,6 +109,28 @@ public class clientConnection {
         req.setToken(sessionToken);
         req.setParam("oldPassword", oldPassword);
         req.setParam("newPassword", newPassword);
+        return sendRequest(req);
+    }
+    
+    // Product functionality
+    public response listProducts() {
+        request req = new request(request.LIST_PRODUCTS);
+        if (sessionToken != null) {
+            req.setToken(sessionToken);
+        }
+        return sendRequest(req);
+    }
+    
+    // Admin-only product update functionality
+    public response updateProduct(String productId, String productName, String description, String price, String stock, String category) {
+        request req = new request(request.UPDATE_PRODUCT);
+        req.setToken(sessionToken);
+        req.setParam("productId", productId);
+        req.setParam("productName", productName);
+        req.setParam("description", description);
+        req.setParam("price", price);
+        req.setParam("stock", stock);
+        req.setParam("category", category);
         return sendRequest(req);
     }
     

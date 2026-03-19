@@ -65,7 +65,7 @@ public class authHandler {
             // Create session
             String token = sessionMgr.createSession(userObj.getUserId());
             
-            return new response(true, "Login successful|" + token);
+            return new response(true, "Login successful|" + token + "|" + userObj.getRole().name());
             
         } catch (Exception e) {
             System.err.println("Login error: " + e.getMessage());

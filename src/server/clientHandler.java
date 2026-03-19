@@ -7,6 +7,7 @@ import java.net.Socket;
 import protocol.request;
 import protocol.response;
 import server.handlers.authHandler;
+import server.handlers.productHandler;
 
 public class clientHandler implements Runnable {
     private Socket clientSocket;
@@ -32,8 +33,16 @@ public class clientHandler implements Runnable {
                 request clientRequest = (request) in.readObject();
                 System.out.println("📨 Received request: " + clientRequest.getType());
                 
-                // Process the request using authHandler
-                response serverResponse = authHandler.handle(clientRequest);
+                // Process the request using appropriate handler
+                response serverResponse;
+                
+                String requestType = clientRequest.getType();
+                if (requestType.equals(request.UPDATE_PRODUCT) || 
+                    requestType.equals(request.LIST_PRODUCTS)) {
+                    serverResponse = productHandler.handle(clientRequest);
+                } else {
+                    serverResponse = authHandler.handle(clientRequest);
+                }
                 
                 // Send response object back to client
                 System.out.println("📤 Sending response: " + (serverResponse.isSuccess() ? "SUCCESS" : "ERROR"));
