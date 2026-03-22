@@ -15,12 +15,26 @@ public class CartItem {
     }
 
     // Getters et Setters
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
-    public int getUserId() { return userId; }
-    public void setUserId(int userId) { this.userId = userId; }
-    public int getProductId() { return productId; }
-    public void setProductId(int productId) { this.productId = productId; }
-    public int getQuantity() { return quantity; }
-    public void setQuantity(int quantity) { this.quantity = quantity; }
+    public int getId()                       { return id; }
+    public void setId(int id)                { this.id = id; }
+    public int getUserId()                   { return userId; }
+    public void setUserId(int userId)        { this.userId = userId; }
+    public int getProductId()                { return productId; }
+    public void setProductId(int productId)  { this.productId = productId; }
+    public int getQuantity()                 { return quantity; }
+    public void setQuantity(int quantity)    { this.quantity = quantity; }
+
+    // ════════════════════════════════════════════════════════════════
+    // ── updateQuantity(qty: int) — selon UML
+    // ════════════════════════════════════════════════════════════════
+    public void updateQuantity(int qty) {
+
+        if (qty <= 0) {
+            System.out.println("❌ Quantity must be greater than 0.");
+            return;
+        }
+
+        this.quantity = qty;
+        System.out.println("✅ Quantity updated to " + qty);
+    }
 }
