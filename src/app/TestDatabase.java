@@ -105,11 +105,19 @@ public class TestDatabase {
         System.out.println();
         System.out.println("TEST 9 - updateQuantity()");
         System.out.println(THIN);
-        CartItem item = new CartItem(1, 1, 5);
+     // ✅ déclaration correcte
+        CartItem item = new CartItem("item1", p, 5, p.getPrice());
+
         System.out.println("Quantite avant : " + item.getQuantity());
+
         item.updateQuantity(10);
         System.out.println("Quantite apres : " + item.getQuantity());
-        item.updateQuantity(-1);
+
+        try {
+            item.updateQuantity(-1);
+        } catch (IllegalArgumentException e) {
+            System.out.println("Exception capturee : " + e.getMessage());
+        }
 
         // ── VERIFICATION FINALE ───────────────────────────────────
         System.out.println();
