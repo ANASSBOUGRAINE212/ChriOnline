@@ -62,23 +62,6 @@ public class databaseInitializer {
             (7, 'Logitech Mouse',  'Ergonomic gaming mouse',               49.99,  25, 'Accessories');
             """;
 
-        String insertSampleUser = """
-            INSERT IGNORE INTO users (userId, username, email, passwordHash, role) VALUES
-            ('test-user-001', 'testuser', 'test@example.com', 
-             '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'CLIENT');
-            """;
-
-        String insertSampleCart = """
-            INSERT IGNORE INTO carts (cartId, userId) VALUES
-            ('cart-test-user-001', 'test-user-001');
-            """;
-
-        String insertSampleCartItems = """
-            INSERT IGNORE INTO cart_items (itemId, cartId, productId, quantity, unitPrice) VALUES
-            ('item-001', 'cart-test-user-001', 3, 2, 999.99),
-            ('item-002', 'cart-test-user-001', 5, 1, 199.99);
-            """;
-
         try (Connection conn = databaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(createUsers);
@@ -90,13 +73,7 @@ public class databaseInitializer {
             stmt.execute(createCartItems);
             System.out.println("📝 Cart items table ready");
             stmt.execute(insertSampleProducts);
-            System.out.println("🛒 Sample products ready");
-            stmt.execute(insertSampleUser);
-            System.out.println("👤 Sample user ready");
-            stmt.execute(insertSampleCart);
-            System.out.println("🛒 Sample cart ready");
-            stmt.execute(insertSampleCartItems);
-            System.out.println("📦 Sample cart items ready");
+            System.out.println("🛒 Sample products inserted");
             System.out.println("✅ Database initialized with MySQL");
         } catch (SQLException e) {
             System.err.println("❌ Database initialization failed: " + e.getMessage());

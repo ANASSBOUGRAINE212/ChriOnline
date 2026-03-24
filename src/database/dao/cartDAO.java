@@ -23,8 +23,8 @@ public class cartDAO {
     // getOrCreateCart(userId: String): Cart
     // ════════════════════════════════════════════════════════════════
     public cart getOrCreateCart(String userId) {
-        String selectSql = "SELECT cartId FROM cart WHERE userId = ?";
-        String insertSql = "INSERT INTO cart (cartId, userId, createdAt) VALUES (?, ?, NOW())";
+        String selectSql = "SELECT cartId FROM carts WHERE userId = ?";
+        String insertSql = "INSERT INTO carts (cartId, userId, createdAt) VALUES (?, ?, NOW())";
 
         try (Connection conn = databaseConnection.getConnection()) {
 

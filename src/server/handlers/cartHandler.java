@@ -3,6 +3,8 @@ package server.handlers;
 import database.dao.cartDAO;
 import database.dao.productDAO;
 import java.util.List;
+
+import model.cart;
 import model.cartItem;
 import model.product;
 import protocol.request;
@@ -68,7 +70,13 @@ public class cartHandler {
 
             System.out.println("🛒 Adding product " + productId + " (qty: " + quantity + ") to cart");
 
-            String cartId = "cart-" + userId;
+            // Automatically create cart if it doesn't exist
+            cart userCart = cartDAO.getOrCreateCart(userId);
+            if (userCart == null) {
+                return new response(false, "Failed to create/access cart");
+            }
+
+            String cartId = userCart.getCartId();
 
             if (cartDAO.addItem(cartId, productId, quantity, price)) {
                 return new response(true, "✅ Product added to cart successfully");
@@ -91,8 +99,14 @@ public class cartHandler {
         }
 
         System.out.println("👤 User ID from session: " + userId);
-        String cartId = "cart-" + userId;
+        
+        // Automatically create cart if it doesn't exist
+        cart userCart = cartDAO.getOrCreateCart(userId);
+        if (userCart == null) {
+            return new response(false, "Failed to create/access cart");
+        }
 
+        String cartId = userCart.getCartId();
         List<cartItem> items = cartDAO.getItems(cartId);
         if (items.isEmpty()) {
             return new response(true, "🛒 Your cart is empty");
@@ -125,7 +139,13 @@ public class cartHandler {
             int productId = Integer.parseInt(productIdStr);
             System.out.println("🗑️  Removing product " + productId + " from cart");
 
-            String cartId = "cart-" + userId;
+            // Get cart (should exist if they're removing items)
+            cart userCart = cartDAO.getOrCreateCart(userId);
+            if (userCart == null) {
+                return new response(false, "Cart not found");
+            }
+
+            String cartId = userCart.getCartId();
 
             if (cartDAO.removeItem(cartId, productId)) {
                 return new response(true, "✅ Item removed from cart");
@@ -148,8 +168,14 @@ public class cartHandler {
         }
 
         System.out.println("💰 Calculating cart total for user: " + userId);
-        String cartId = "cart-" + userId;
+        
+        // Automatically create cart if it doesn't exist
+        cart userCart = cartDAO.getOrCreateCart(userId);
+        if (userCart == null) {
+            return new response(false, "Failed to access cart");
+        }
 
+        String cartId = userCart.getCartId();
         double total = cartDAO.getSubtotal(cartId);
         return new response(true, String.format("💰 Cart Total: $%.2f", total));
     }
