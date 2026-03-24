@@ -7,6 +7,8 @@ import protocol.request;
 import protocol.response;
 import server.handlers.authHandler;
 import server.handlers.cartHandler;
+import server.handlers.orderHandler;
+import server.handlers.paymentHandler;
 import server.handlers.productHandler;
 
 public class clientHandler implements Runnable {
@@ -46,6 +48,17 @@ public class clientHandler implements Runnable {
                            requestType.equals(request.REMOVE_FROM_CART) ||
                            requestType.equals(request.GET_CART_TOTAL)) {
                     serverResponse = cartHandler.handle(clientRequest);
+                } else if (requestType.equals(request.CREATE_ORDER)        ||
+                           requestType.equals(request.GET_ORDER)           ||
+                           requestType.equals(request.LIST_ORDERS)         ||
+                           requestType.equals(request.CANCEL_ORDER)        ||
+                           requestType.equals(request.UPDATE_ORDER_STATUS)) {
+                    serverResponse = orderHandler.handle(clientRequest);
+                } else if (requestType.equals(request.PROCESS_PAYMENT) ||
+                           requestType.equals(request.GET_PAYMENT)     ||
+                           requestType.equals(request.REFUND_PAYMENT)  ||
+                           requestType.equals(request.GET_RECEIPT)) {
+                    serverResponse = paymentHandler.handle(clientRequest);
                 } else {
                     serverResponse = authHandler.handle(clientRequest);
                 }

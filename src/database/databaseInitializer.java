@@ -53,6 +53,41 @@ public class databaseInitializer {
             );
             """;
 
+        String createOrders = """
+            CREATE TABLE IF NOT EXISTS orders (
+                orderId      VARCHAR(100) PRIMARY KEY,
+                userId       VARCHAR(36) NOT NULL,
+                totalAmount  DECIMAL(10,2) NOT NULL,
+                status       ENUM('PENDING','CONFIRMED','PROCESSING','SHIPPED','DELIVERED','CANCELLED') DEFAULT 'PENDING',
+                createdAt    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE
+            );
+            """;
+
+        String createOrderItems = """
+            CREATE TABLE IF NOT EXISTS order_items (
+                itemId     VARCHAR(100) PRIMARY KEY,
+                orderId    VARCHAR(100) NOT NULL,
+                productId  INT NOT NULL,
+                quantity   INT NOT NULL,
+                unitPrice  DECIMAL(10,2) NOT NULL,
+                FOREIGN KEY (orderId) REFERENCES orders(orderId) ON DELETE CASCADE,
+                FOREIGN KEY (productId) REFERENCES products(id)
+            );
+            """;
+
+        String createPayments = """
+            CREATE TABLE IF NOT EXISTS payments (
+                paymentId  VARCHAR(100) PRIMARY KEY,
+                orderId    VARCHAR(100) NOT NULL,
+                amount     DECIMAL(10,2) NOT NULL,
+                method     ENUM('CREDIT_CARD','DEBIT_CARD','PAYPAL','BANK_TRANSFER','CASH') NOT NULL,
+                status     ENUM('PENDING','COMPLETED','FAILED','REFUNDED','CANCELLED') DEFAULT 'PENDING',
+                timestamp  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (orderId) REFERENCES orders(orderId) ON DELETE CASCADE
+            );
+            """;
+
         String insertSampleProducts = """
             INSERT IGNORE INTO products (id, name, description, price, stock, category) VALUES
             (3, 'iPhone 14',       'Apple smartphone latest generation',  999.99,  10, 'Smartphones'),
@@ -72,6 +107,12 @@ public class databaseInitializer {
             System.out.println("🛒 Carts table ready");
             stmt.execute(createCartItems);
             System.out.println("📝 Cart items table ready");
+            stmt.execute(createOrders);
+            System.out.println("📦 Orders table ready");
+            stmt.execute(createOrderItems);
+            System.out.println("📝 Order items table ready");
+            stmt.execute(createPayments);
+            System.out.println("💳 Payments table ready");
             stmt.execute(insertSampleProducts);
             System.out.println("🛒 Sample products inserted");
             System.out.println("✅ Database initialized with MySQL");

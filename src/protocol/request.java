@@ -20,6 +20,15 @@ public class request implements Serializable {
     public static final String REMOVE_FROM_CART = "REMOVE_FROM_CART";
     public static final String GET_CART_ITEMS  = "GET_CART_ITEMS";
     public static final String GET_CART_TOTAL  = "GET_CART_TOTAL";
+    public static final String CREATE_ORDER    = "CREATE_ORDER";
+    public static final String GET_ORDER       = "GET_ORDER";
+    public static final String LIST_ORDERS     = "LIST_ORDERS";
+    public static final String CANCEL_ORDER    = "CANCEL_ORDER";
+    public static final String UPDATE_ORDER_STATUS = "UPDATE_ORDER_STATUS";
+    public static final String PROCESS_PAYMENT = "PROCESS_PAYMENT";
+    public static final String GET_PAYMENT     = "GET_PAYMENT";
+    public static final String REFUND_PAYMENT  = "REFUND_PAYMENT";
+    public static final String GET_RECEIPT     = "GET_RECEIPT";
 
     private String type;
     private String token;

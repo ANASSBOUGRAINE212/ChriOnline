@@ -126,7 +126,9 @@ public class authMenu {
             System.out.println("5. 🛍️  View Products");
             if (isAdmin) System.out.println("6. 🔧 Product Management (Admin)");
             System.out.println("7. 🛒 Shopping Cart");
-            System.out.println("8. 🚪 Logout");
+            System.out.println("8. 📦 My Orders");
+            System.out.println("9. 💳 Payments");
+            System.out.println("10. 🚪 Logout");
             System.out.println("0. 🚪 Exit");
             System.out.println("─────────────");
             System.out.print("Please select an option: ");
@@ -145,7 +147,9 @@ public class authMenu {
                         else System.out.println("\n❌ Invalid choice!");
                         break;
                     case 7: new cartMenu(connection, scanner).show(); break;
-                    case 8: handleLogout(connection); return;
+                    case 8: new orderMenu(connection, scanner).show(); break;
+                    case 9: new paymentMenu(connection, scanner).show(); break;
+                    case 10: handleLogout(connection); return;
                     case 0: System.out.println("\n👋 Thank you for using ChriOnline! Goodbye!"); break;
                     default: System.out.println("\n❌ Invalid choice!");
                 }
@@ -155,7 +159,7 @@ public class authMenu {
                 choice = -1;
             }
 
-            if (choice != 0 && choice != 8) {
+            if (choice != 0 && choice != 10) {
                 System.out.println("\nPress Enter to continue...");
                 scanner.nextLine();
             }

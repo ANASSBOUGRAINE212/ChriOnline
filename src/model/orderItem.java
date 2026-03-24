@@ -3,7 +3,7 @@ package model;
 public class orderItem {
 
     private String itemId;
-    private Object product;   
+    private product product;   
     private int quantity;
     private double unitPrice;
 
@@ -11,7 +11,7 @@ public class orderItem {
 
     public orderItem() {}
 
-    public orderItem(String itemId, Object product, int quantity, double unitPrice) {
+    public orderItem(String itemId, product product, int quantity, double unitPrice) {
         this.itemId    = itemId;
         this.product   = product;
         this.quantity  = quantity;
@@ -21,19 +21,26 @@ public class orderItem {
     // ── Getters ───────────────────────────
 
     public String getItemId()    { return itemId; }
-    public Object getProduct()   { return product; }
+    public product getProduct()   { return product; }
     public int    getQuantity()  { return quantity; }
     public double getUnitPrice() { return unitPrice; }
 
     // ── Setters ───────────────────────────
 
     public void setItemId(String itemId)       { this.itemId    = itemId; }
-    public void setProduct(Object product)     { this.product   = product; }
+    public void setProduct(product product)     { this.product   = product; }
     public void setQuantity(int quantity)      { this.quantity  = quantity; }
     public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }
 
-    // ── Methods ───────────────────────────
+    // ── Methods from UML ───────────────────────────
 
-    public double getSubtotal()           { return quantity * unitPrice; }
-    public void   updateQuantity(int qty) { this.quantity = qty; }
+    public double getSubtotal()           { 
+        return quantity * unitPrice; 
+    }
+    
+    public void updateQuantity(int qty) { 
+        if (qty > 0) {
+            this.quantity = qty; 
+        }
+    }
 }

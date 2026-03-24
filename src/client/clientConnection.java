@@ -210,6 +210,63 @@ public class clientConnection {
         return new response(false, "Clear cart feature not yet implemented on server");
     }
 
+    // ── Orders ────────────────────────────────────────────────────
+    public response createOrder() {
+        request req = new request(request.CREATE_ORDER);
+        req.setToken(sessionToken);
+        return sendRequest(req);
+    }
+
+    public response getOrder(String orderId) {
+        request req = new request(request.GET_ORDER);
+        req.setToken(sessionToken);
+        req.setParam("orderId", orderId);
+        return sendRequest(req);
+    }
+
+    public response listOrders() {
+        request req = new request(request.LIST_ORDERS);
+        req.setToken(sessionToken);
+        return sendRequest(req);
+    }
+
+    public response cancelOrder(String orderId) {
+        request req = new request(request.CANCEL_ORDER);
+        req.setToken(sessionToken);
+        req.setParam("orderId", orderId);
+        return sendRequest(req);
+    }
+
+    // ── Payments ──────────────────────────────────────────────────
+    public response processPayment(String orderId, String method) {
+        request req = new request(request.PROCESS_PAYMENT);
+        req.setToken(sessionToken);
+        req.setParam("orderId", orderId);
+        req.setParam("method", method);
+        return sendRequest(req);
+    }
+
+    public response getPayment(String paymentId) {
+        request req = new request(request.GET_PAYMENT);
+        req.setToken(sessionToken);
+        req.setParam("paymentId", paymentId);
+        return sendRequest(req);
+    }
+
+    public response getReceipt(String paymentId) {
+        request req = new request(request.GET_RECEIPT);
+        req.setToken(sessionToken);
+        req.setParam("paymentId", paymentId);
+        return sendRequest(req);
+    }
+
+    public response refundPayment(String paymentId) {
+        request req = new request(request.REFUND_PAYMENT);
+        req.setToken(sessionToken);
+        req.setParam("paymentId", paymentId);
+        return sendRequest(req);
+    }
+
     public void close() {
         try {
             if (out    != null) out.close();
