@@ -1,57 +1,105 @@
 package database;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
 public class databaseInitializer {
     public static void init() {
+        String createUsers = """
+            CREATE TABLE IF NOT EXISTS users (
+                userId       VARCHAR(36)  PRIMARY KEY,
+                username     VARCHAR(50)  NOT NULL UNIQUE,
+                email        VARCHAR(100) NOT NULL UNIQUE,
+                passwordHash VARCHAR(64)  NOT NULL,
+                address      VARCHAR(255),
+                phone        VARCHAR(20),
+                role         ENUM('CLIENT','ADMIN') NOT NULL DEFAULT 'CLIENT'
+            );
+            """;
+
+        String createProducts = """
+            CREATE TABLE IF NOT EXISTS products (
+                id          INT AUTO_INCREMENT PRIMARY KEY,
+                name        VARCHAR(100)   NOT NULL,
+                description TEXT,
+                price       DECIMAL(10,2)  NOT NULL,
+                stock       INT            DEFAULT 0,
+                category    VARCHAR(50),
+                created_by  VARCHAR(36),
+                created_at  TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (created_by) REFERENCES users(userId)
+            );
+            """;
+
+        // ✅ INSERT IGNORE prevents duplicates on restart
+        String createCarts = """
+            CREATE TABLE IF NOT EXISTS carts (
+                cartId     VARCHAR(100) PRIMARY KEY,
+                userId     VARCHAR(100) NOT NULL,
+                createdAt  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (userId) REFERENCES users(userId) ON DELETE CASCADE
+            );
+            """;
+
+        String createCartItems = """
+            CREATE TABLE IF NOT EXISTS cart_items (
+                itemId     VARCHAR(100) PRIMARY KEY,
+                cartId     VARCHAR(100) NOT NULL,
+                productId  INT NOT NULL,
+                quantity   INT NOT NULL DEFAULT 1,
+                unitPrice  DECIMAL(10,2) NOT NULL,
+                FOREIGN KEY (cartId) REFERENCES carts(cartId) ON DELETE CASCADE,
+                FOREIGN KEY (productId) REFERENCES products(id) ON DELETE CASCADE
+            );
+            """;
+
+        String insertSampleProducts = """
+            INSERT IGNORE INTO products (id, name, description, price, stock, category) VALUES
+            (3, 'iPhone 14',       'Apple smartphone latest generation',  999.99,  10, 'Smartphones'),
+            (4, 'MacBook Pro',     'Apple laptop 16 inches',             2499.99,   5, 'Laptops'),
+            (5, 'Sony Headset',    'Bluetooth audio headset',             199.99,  20, 'Audio'),
+            (6, 'Gaming Keyboard', 'Mechanical RGB keyboard',              89.99,  15, 'Accessories'),
+            (7, 'Logitech Mouse',  'Ergonomic gaming mouse',               49.99,  25, 'Accessories');
+            """;
+
+        String insertSampleUser = """
+            INSERT IGNORE INTO users (userId, username, email, passwordHash, role) VALUES
+            ('test-user-001', 'testuser', 'test@example.com', 
+             '5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8', 'CLIENT');
+            """;
+
+        String insertSampleCart = """
+            INSERT IGNORE INTO carts (cartId, userId) VALUES
+            ('cart-test-user-001', 'test-user-001');
+            """;
+
+        String insertSampleCartItems = """
+            INSERT IGNORE INTO cart_items (itemId, cartId, productId, quantity, unitPrice) VALUES
+            ('item-001', 'cart-test-user-001', 3, 2, 999.99),
+            ('item-002', 'cart-test-user-001', 5, 1, 199.99);
+            """;
+
         try (Connection conn = databaseConnection.getConnection();
              Statement stmt = conn.createStatement()) {
-            
-            // users table
-            String createUsersTable = 
-                "CREATE TABLE IF NOT EXISTS users (" +
-                "userId VARCHAR(36) PRIMARY KEY, " +
-                "username VARCHAR(50) NOT NULL UNIQUE, " +
-                "email VARCHAR(100) NOT NULL UNIQUE, " +
-                "passwordHash VARCHAR(64) NOT NULL, " +
-                "address VARCHAR(255), " +
-                "phone VARCHAR(20), " +
-                "role ENUM('CLIENT','ADMIN') NOT NULL DEFAULT 'CLIENT'" +
-                ")";
-            stmt.execute(createUsersTable);
-            System.out.println("✅ Users table ready");
-            
-            // products table
-            String createProductsTable = 
-                "CREATE TABLE IF NOT EXISTS products (" +
-                "productId VARCHAR(50) PRIMARY KEY, " +
-                "name VARCHAR(255) NOT NULL, " +
-                "description TEXT, " +
-                "price DECIMAL(10, 2) NOT NULL, " +
-                "stock INT NOT NULL DEFAULT 0, " +
-                "category VARCHAR(100)" +
-                ")";
-            stmt.execute(createProductsTable);
-            System.out.println("✅ Products table ready");
-            
-            // Insert sample products (INSERT IGNORE prevents duplicates)
-            String insertProducts = 
-                "INSERT IGNORE INTO products (productId, name, description, price, stock, category) VALUES " +
-                "('P001', 'Laptop Dell XPS 13', 'High-performance ultrabook with 13-inch display', 999.99, 15, 'Electronics'), " +
-                "('P002', 'iPhone 15 Pro', 'Latest Apple smartphone with A17 Pro chip', 1199.00, 25, 'Electronics'), " +
-                "('P003', 'Sony WH-1000XM5', 'Premium noise-cancelling headphones', 349.99, 30, 'Audio'), " +
-                "('P004', 'Mechanical Keyboard', 'RGB mechanical gaming keyboard', 129.99, 40, 'Accessories'), " +
-                "('P005', 'Wireless Mouse', 'Ergonomic wireless mouse with precision tracking', 49.99, 50, 'Accessories')";
-            stmt.execute(insertProducts);
-            System.out.println("✅ Sample products inserted");
-            
-            System.out.println("📦 Database initialized with MySQL");
-            
+            stmt.execute(createUsers);
+            System.out.println("📋 Users table ready");
+            stmt.execute(createProducts);
+            System.out.println("📦 Products table ready");
+            stmt.execute(createCarts);
+            System.out.println("🛒 Carts table ready");
+            stmt.execute(createCartItems);
+            System.out.println("📝 Cart items table ready");
+            stmt.execute(insertSampleProducts);
+            System.out.println("🛒 Sample products ready");
+            stmt.execute(insertSampleUser);
+            System.out.println("👤 Sample user ready");
+            stmt.execute(insertSampleCart);
+            System.out.println("🛒 Sample cart ready");
+            stmt.execute(insertSampleCartItems);
+            System.out.println("📦 Sample cart items ready");
+            System.out.println("✅ Database initialized with MySQL");
         } catch (SQLException e) {
             System.err.println("❌ Database initialization failed: " + e.getMessage());
-            e.printStackTrace();
             throw new RuntimeException("DB init failed", e);
         }
     }

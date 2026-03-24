@@ -42,31 +42,27 @@ public class authHandler {
     }
 
     private response handleLogin(request request) {
-        String username = request.getParam("username");
+        String email    = request.getParam("email");
         String password = request.getParam("password");
-        
-        if (username == null || password == null || username.trim().isEmpty() || password.trim().isEmpty()) {
-            return new response(false, "Username and password are required");
+
+        if (email == null || password == null || email.trim().isEmpty() || password.trim().isEmpty()) {
+            return new response(false, "Email and password are required");
         }
-        
+
         try {
-            // Get user from database
-            user userObj = userDAO.getUserByUsername(username.trim());
+            user userObj = userDAO.getUserByEmail(email.trim());
             if (userObj == null) {
-                return new response(false, "Invalid username or password");
+                return new response(false, "Invalid email or password");
             }
-            
-            // Check password
+
             String hashedPassword = hash(password);
             if (!userObj.getPasswordHash().equals(hashedPassword)) {
-                return new response(false, "Invalid username or password");
+                return new response(false, "Invalid email or password");
             }
-            
-            // Create session
+
             String token = sessionMgr.createSession(userObj.getUserId());
-            
-            return new response(true, "Login successful|" + token + "|" + userObj.getRole().name());
-            
+            return new response(true, "Login successful|" + token + "|" + userObj.getRole().toString());
+
         } catch (Exception e) {
             System.err.println("Login error: " + e.getMessage());
             return new response(false, "Server error during login");
@@ -75,10 +71,10 @@ public class authHandler {
     
     private response handleRegister(request request) {
         String username = request.getParam("username");
-        String email = request.getParam("email");
+        String email    = request.getParam("email");
         String password = request.getParam("password");
-        String address = request.getParam("address");
-        String phone = request.getParam("phone");
+        String address  = request.getParam("address");
+        String phone    = request.getParam("phone");
         
         if (username == null || email == null || password == null || 
             username.trim().isEmpty() || email.trim().isEmpty() || password.trim().isEmpty()) {
@@ -86,13 +82,11 @@ public class authHandler {
         }
         
         username = username.trim();
-        email = email.trim();
+        email    = email.trim();
         
-        // Set default values for optional fields
         if (address == null) address = "";
-        if (phone == null) phone = "";
+        if (phone == null)   phone   = "";
         
-        // Validate input
         if (password.length() < 6) {
             return new response(false, "Password must be at least 6 characters long");
         }
@@ -102,22 +96,19 @@ public class authHandler {
         }
         
         try {
-            // Check if username exists
             if (userDAO.getUserByUsername(username) != null) {
                 return new response(false, "Username already exists");
             }
             
-            // Check if email exists
             if (userDAO.getUserByEmail(email) != null) {
                 return new response(false, "Email already registered");
             }
             
-            // Create new user with CLIENT role (default for all new registrations)
-            String userId = UUID.randomUUID().toString();
+            String userId         = UUID.randomUUID().toString();
             String hashedPassword = hash(password);
             
-            user newUser = new user(userId, username, email, hashedPassword, 
-                                  address.trim(), phone.trim(), user.Role.CLIENT);
+            user newUser = new user(userId, username, email, hashedPassword,
+                                    address.trim(), phone.trim(), user.Role.CLIENT);
             
             if (userDAO.createUser(newUser)) {
                 return new response(true, "Registration successful! You can now login. Your account has CLIENT privileges.");
@@ -136,7 +127,6 @@ public class authHandler {
         if (token == null || token.trim().isEmpty()) {
             return new response(false, "Invalid session");
         }
-        
         try {
             sessionMgr.removeSession(token);
             return new response(true, "Logged out successfully");
@@ -146,20 +136,17 @@ public class authHandler {
     }
 
     private response handleGetUserInfo(request request) {
-        String token = request.getToken();
+        String token  = request.getToken();
         String userId = sessionMgr.getUserIdFromToken(token);
         if (userId == null) {
             return new response(false, "Not authenticated");
         }
-
         try {
             user userObj = userDAO.getUserById(userId);
             if (userObj == null) {
                 return new response(false, "User not found");
             }
-
-            String info = userObj.getUserInfo();
-            return new response(true, info);
+            return new response(true, userObj.getUserInfo());
         } catch (Exception e) {
             System.err.println("Get user info error: " + e.getMessage());
             return new response(false, "Error retrieving user information");
@@ -167,22 +154,21 @@ public class authHandler {
     }
     
     private response handleGetProfile(request request) {
-        // Same as getUserInfo but can be extended for different profile views
         return handleGetUserInfo(request);
     }
 
     private response handleUpdateProfile(request request) {
-        String token = request.getToken();
+        String token  = request.getToken();
         String userId = sessionMgr.getUserIdFromToken(token);
         if (userId == null) {
             return new response(false, "Not authenticated");
         }
 
         String address = request.getParam("address");
-        String phone = request.getParam("phone");
+        String phone   = request.getParam("phone");
         
         if (address == null) address = "";
-        if (phone == null) phone = "";
+        if (phone == null)   phone   = "";
 
         try {
             boolean success = userDAO.updateProfile(userId, address, phone);
@@ -198,7 +184,7 @@ public class authHandler {
     }
 
     private response handleChangePassword(request request) {
-        String token = request.getToken();
+        String token  = request.getToken();
         String userId = sessionMgr.getUserIdFromToken(token);
         if (userId == null) {
             return new response(false, "Not authenticated");
@@ -207,7 +193,7 @@ public class authHandler {
         String oldPassword = request.getParam("oldPassword");
         String newPassword = request.getParam("newPassword");
         
-        if (oldPassword == null || newPassword == null || 
+        if (oldPassword == null || newPassword == null ||
             oldPassword.trim().isEmpty() || newPassword.trim().isEmpty()) {
             return new response(false, "Both old and new passwords are required");
         }
@@ -234,12 +220,10 @@ public class authHandler {
 
     private String hash(String password) {
         try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(password.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder();
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b));
-            }
+            MessageDigest md     = MessageDigest.getInstance("SHA-256");
+            byte[] digest        = md.digest(password.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb     = new StringBuilder();
+            for (byte b : digest) sb.append(String.format("%02x", b));
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("SHA-256 not available", e);

@@ -1,0 +1,42 @@
+# Database configuration files (contains sensitive credentials)
+db.properties
+src/db.properties
+src/main/resources/db.properties
+
+# Compiled class files
+*.class
+bin/
+target/
+
+# Eclipse project files
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+
+# Mac OS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
