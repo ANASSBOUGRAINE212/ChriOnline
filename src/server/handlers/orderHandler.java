@@ -90,7 +90,7 @@ public class orderHandler {
                 // Clear cart after successful order
                 cartDAO.clearCart(cartId);
 
-                return new response(true, "Order created successfully|" + newOrder.getOrderId());
+                return new response(true, "✅ Order created successfully!|" + newOrder.getOrderId() + "|" + String.format("%.2f MAD", total));
             } else {
                 return new response(false, "Failed to create order");
             }
@@ -147,8 +147,9 @@ public class orderHandler {
             sb.append("📦 Your Orders:\n");
             sb.append("─────────────────────────────────────────────────\n");
             for (order ord : orders) {
+                // Include full order ID for proper retrieval
                 sb.append(String.format("Order: %s | Status: %s | Total: $%.2f | Date: %s\n",
-                    ord.getOrderId().substring(0, Math.min(15, ord.getOrderId().length())),
+                    ord.getOrderId(),  // Full ID instead of truncated
                     ord.getStatus(),
                     ord.getTotalAmount(),
                     ord.getCreatedAt()));

@@ -34,7 +34,8 @@ public class cartItem {
     @Override
     public String toString() {
         String productName = product != null ? product.getName() : "Unknown";
-        return String.format("%s x%d @ $%.2f = $%.2f", 
-            productName, quantity, unitPrice, getSubtotal());
+        String productId = product != null ? product.getId() : "0";
+        return String.format("[ID: %s] %s x%d @ $%.2f = $%.2f", 
+            productId, productName, quantity, unitPrice, getSubtotal());
     }
 }
