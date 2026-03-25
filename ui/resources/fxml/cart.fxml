@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.controllers.CartController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="20">
+        <Label text="Shopping Cart" styleClass="content-title">
+            <font>
+                <Font name="System Bold" size="28"/>
+            </font>
+        </Label>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="totalLabel" text="Total: $0.00" styleClass="content-subtitle">
+            <font>
+                <Font name="System Bold" size="20"/>
+            </font>
+        </Label>
+    </HBox>
+    
+    <!-- Cart Items -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
+        <VBox fx:id="cartItemsContainer" spacing="15">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+        </VBox>
+    </ScrollPane>
+    
+    <!-- Actions -->
+    <HBox spacing="15" alignment="CENTER_RIGHT">
+        <Button text="Clear Cart" onAction="#handleClearCart" styleClass="secondary-button"/>
+        <Button text="Checkout" onAction="#handleCheckout" styleClass="primary-button" prefWidth="150"/>
+    </HBox>
+    
+</VBox>

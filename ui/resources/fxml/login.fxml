@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox alignment="CENTER" spacing="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.controllers.LoginController">
+    <padding>
+        <Insets top="50" right="50" bottom="50" left="50"/>
+    </padding>
+    
+    <!-- Title -->
+    <Label text="ChriOnline" styleClass="title">
+        <font>
+            <Font name="System Bold" size="36"/>
+        </font>
+    </Label>
+    
+    <Label text="E-Commerce Platform" styleClass="subtitle">
+        <font>
+            <Font size="16"/>
+        </font>
+    </Label>
+    
+    <Region VBox.vgrow="ALWAYS" minHeight="30"/>
+    
+    <!-- Login Form -->
+    <VBox spacing="15" maxWidth="400" alignment="CENTER">
+        <Label text="Login to Your Account" styleClass="form-title">
+            <font>
+                <Font name="System Bold" size="20"/>
+            </font>
+        </Label>
+        
+        <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
+        <PasswordField fx:id="passwordField" promptText="Password" styleClass="input-field"/>
+        
+        <Label fx:id="messageLabel" text="" styleClass="message-label"/>
+        
+        <Button fx:id="loginButton" text="Login" onAction="#handleLogin" styleClass="primary-button" maxWidth="Infinity"/>
+        <Button fx:id="registerButton" text="Create Account" onAction="#handleRegister" styleClass="secondary-button" maxWidth="Infinity"/>
+    </VBox>
+    
+    <Region VBox.vgrow="ALWAYS"/>
+</VBox>

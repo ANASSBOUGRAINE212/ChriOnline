@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.controllers.PaymentController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <!-- Header -->
+    <Label text="Process Payment" styleClass="content-title">
+        <font>
+            <Font name="System Bold" size="28"/>
+        </font>
+    </Label>
+    
+    <!-- Order Info -->
+    <VBox spacing="10" style="-fx-background-color: #ecf0f1; -fx-background-radius: 10; -fx-padding: 15;">
+        <Label fx:id="orderInfoLabel" text="Order ID: " style="-fx-font-size: 14px;"/>
+        <Label fx:id="totalLabel" text="Total: $0.00" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+    </VBox>
+    
+    <!-- Payment Method -->
+    <VBox spacing="10">
+        <Label text="Select Payment Method:" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+        <ComboBox fx:id="paymentMethodCombo" prefWidth="300"/>
+    </VBox>
+    
+    <!-- Actions -->
+    <HBox spacing="15" alignment="CENTER_RIGHT">
+        <Button text="Cancel" onAction="#handleCancel" styleClass="secondary-button" prefWidth="120"/>
+        <Button text="Pay Now" onAction="#handlePayment" styleClass="primary-button" prefWidth="120"/>
+    </HBox>
+    
+</VBox>

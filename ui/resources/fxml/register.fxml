@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox alignment="CENTER" spacing="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.controllers.RegisterController">
+    <padding>
+        <Insets top="30" right="50" bottom="30" left="50"/>
+    </padding>
+    
+    <Label text="Create Account" styleClass="title">
+        <font>
+            <Font name="System Bold" size="32"/>
+        </font>
+    </Label>
+    
+    <Label text="Join ChriOnline today" styleClass="subtitle">
+        <font>
+            <Font size="14"/>
+        </font>
+    </Label>
+    
+    <Region VBox.vgrow="ALWAYS" minHeight="20"/>
+    
+    <VBox spacing="12" maxWidth="400" alignment="CENTER">
+        <TextField fx:id="usernameField" promptText="Username" styleClass="input-field"/>
+        <TextField fx:id="emailField" promptText="Email" styleClass="input-field"/>
+        <PasswordField fx:id="passwordField" promptText="Password (min 6 characters)" styleClass="input-field"/>
+        <PasswordField fx:id="confirmPasswordField" promptText="Confirm Password" styleClass="input-field"/>
+        <TextField fx:id="addressField" promptText="Address (optional)" styleClass="input-field"/>
+        <TextField fx:id="phoneField" promptText="Phone (optional)" styleClass="input-field"/>
+        
+        <Label fx:id="messageLabel" text="" styleClass="message-label"/>
+        
+        <Button fx:id="registerButton" text="Create Account" onAction="#handleRegister" styleClass="primary-button" maxWidth="Infinity"/>
+        <Button fx:id="backButton" text="Back to Login" onAction="#handleBack" styleClass="secondary-button" maxWidth="Infinity"/>
+    </VBox>
+    
+    <Region VBox.vgrow="ALWAYS"/>
+</VBox>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<VBox spacing="20" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.controllers.ProductController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="20">
+        <Label text="Products" styleClass="content-title">
+            <font>
+                <Font name="System Bold" size="28"/>
+            </font>
+        </Label>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Label fx:id="statusLabel" text="Loading products..." styleClass="content-subtitle"/>
+    </HBox>
+    
+    <!-- Search and Filter -->
+    <HBox spacing="15" alignment="CENTER_LEFT">
+        <TextField fx:id="searchField" promptText="Search products..." HBox.hgrow="ALWAYS" styleClass="input-field"/>
+        <Button text="Search" onAction="#handleSearch" styleClass="primary-button"/>
+        <ComboBox fx:id="categoryFilter" onAction="#handleFilter" promptText="Category"/>
+        <Button text="Refresh" onAction="#loadProducts" styleClass="secondary-button"/>
+    </HBox>
+    
+    <!-- Products Grid -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS">
+        <GridPane fx:id="productsGrid" hgap="20" vgap="20">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+        </GridPane>
+    </ScrollPane>
+    
+</VBox>
