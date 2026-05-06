@@ -18,7 +18,7 @@ public class clientConnection {
         try {
             this.socket = new Socket(host, port);
             this.out    = new ObjectOutputStream(socket.getOutputStream());
-            this.in     = new ObjectInputStream(socket.getInputStream());
+            this.in     = new ObjectInputStream(socket.getInputStream()); 
             this.sessionToken = null;
             System.out.println("✅ Connected successfully!");
         } catch (IOException e) {
