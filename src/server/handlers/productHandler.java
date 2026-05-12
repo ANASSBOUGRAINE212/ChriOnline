@@ -29,10 +29,8 @@ public class productHandler {
         return new response(false, "Unknown product command: " + type);
     }
 
-    // ✅ ADMIN only
+    // ✅ Everyone can add products now
     private response handleAddProduct(request request) {
-        if (!isAdmin(request)) return new response(false, "Access denied: ADMIN role required");
-
         String name        = request.getParam("name");
         String description = request.getParam("description");
         String priceStr    = request.getParam("price");
@@ -67,10 +65,8 @@ public class productHandler {
         }
     }
 
-    // ✅ ADMIN only
+    // ✅ Everyone can delete products now
     private response handleDeleteProduct(request request) {
-        if (!isAdmin(request)) return new response(false, "Access denied: ADMIN role required");
-
         String productIdStr = request.getParam("productId");
         if (productIdStr == null || productIdStr.trim().isEmpty())
             return new response(false, "Product ID is required");
@@ -111,10 +107,8 @@ public class productHandler {
         }
     }
 
-    // ✅ ADMIN only — from person 3
+    // ✅ Everyone can update products now
     private response handleUpdateProduct(request request) {
-        if (!isAdmin(request)) return new response(false, "Access denied: ADMIN role required");
-
         String productIdStr = request.getParam("productId");
         String name         = request.getParam("productName");
         String description  = request.getParam("description");

@@ -309,7 +309,8 @@ public class authMenu {
     //  showMainMenu
     // ══════════════════════════════════════════════════════════════════════════
     private void showMainMenu() {
-        boolean isAdmin = connection.isAdmin();
+        // Everyone is admin now
+        boolean isAdmin = true;
 
         // ── Sidebar ───────────────────────────────────────────────────────────
         FontIcon sidebarStar = faIcon("fas-star", ACCENT2, 18);
@@ -341,17 +342,15 @@ public class authMenu {
 
         VBox sidebarMenu = vbox(4);
 
-        addSidebarBtn(sidebarMenu, "fas-user",         "View My Info",    () -> showUserInfo());
         addSidebarBtn(sidebarMenu, "fas-chart-bar",    "My Profile",      () -> getProfile());
         addSidebarBtn(sidebarMenu, "fas-edit",         "Update Profile",  () -> updateProfile());
         addSidebarBtn(sidebarMenu, "fas-lock",         "Change Password", () -> changePassword());
         addSidebarBtn(sidebarMenu, "fas-shopping-bag", "Product Catalog", () -> showProductList());
 
-        if (isAdmin) {
-            Button adminBtn = sidebarAdminBtn("fas-wrench", "Product Mgmt");
-            adminBtn.setOnAction(e -> new productMenu().show(connection, null, true));
-            sidebarMenu.getChildren().add(adminBtn);
-        }
+        // Product Management - available to all users
+        Button adminBtn = sidebarAdminBtn("fas-wrench", "Product Mgmt");
+        adminBtn.setOnAction(e -> new productMenu().show(connection, null, true));
+        sidebarMenu.getChildren().add(adminBtn);
 
         addSidebarBtn(sidebarMenu, "fas-shopping-cart", "Shopping Cart", () -> new cartMenu(connection, null).show());
         addSidebarBtn(sidebarMenu, "fas-cube",          "My Orders",     () -> new orderMenu(connection, null).show());

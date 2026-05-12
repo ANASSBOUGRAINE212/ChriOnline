@@ -68,23 +68,20 @@ public class productMenu {
         // ── Action buttons ────────────────────────────────────────────────────
         VBox actionsBox = vbox(10);
 
-        // 1. Get product details — everyone
+        // All users can access all product management features
         Button getBtn = menuRowBtn("fas-search", "Get Product Details", "Look up a product by ID");
         getBtn.setOnAction(e -> { animateButtonPress(getBtn); handleGetProduct(connection, null); });
-        actionsBox.getChildren().add(getBtn);
 
-        if (isAdmin) {
-            Button addBtn = menuRowBtn("fas-plus-circle", "Add Product", "Create a new product listing");
-            addBtn.setOnAction(e -> { animateButtonPress(addBtn); handleAddProduct(connection, null); });
+        Button addBtn = menuRowBtn("fas-plus-circle", "Add Product", "Create a new product listing");
+        addBtn.setOnAction(e -> { animateButtonPress(addBtn); handleAddProduct(connection, null); });
 
-            Button delBtn = menuRowBtnDanger("fas-trash-alt", "Delete Product", "Permanently remove a product");
-            delBtn.setOnAction(e -> { animateButtonPress(delBtn); handleDeleteProduct(connection, null); });
+        Button delBtn = menuRowBtnDanger("fas-trash-alt", "Delete Product", "Permanently remove a product");
+        delBtn.setOnAction(e -> { animateButtonPress(delBtn); handleDeleteProduct(connection, null); });
 
-            Button updBtn = menuRowBtn("fas-edit", "Update Product", "Modify an existing product");
-            updBtn.setOnAction(e -> { animateButtonPress(updBtn); handleUpdateProduct(connection, null); });
+        Button updBtn = menuRowBtn("fas-edit", "Update Product", "Modify an existing product");
+        updBtn.setOnAction(e -> { animateButtonPress(updBtn); handleUpdateProduct(connection, null); });
 
-            actionsBox.getChildren().addAll(addBtn, delBtn, updBtn);
-        }
+        actionsBox.getChildren().addAll(getBtn, addBtn, delBtn, updBtn);
 
         // ── Close button ──────────────────────────────────────────────────────
         Button closeBtn = dangerIconBtn("fas-times", "Close");
@@ -94,7 +91,7 @@ public class productMenu {
         content.setPadding(new Insets(32));
         content.setStyle("-fx-background-color: " + CARD_BG + "; -fx-background-radius: 16;");
 
-        Scene scene = new Scene(animatedRoot(content), 500, isAdmin ? 480 : 280);
+        Scene scene = new Scene(animatedRoot(content), 500, 480);
         stage.setScene(scene);
 
         FadeTransition ft = new FadeTransition(Duration.millis(400), content);
