@@ -88,6 +88,24 @@ public class databaseInitializer {
             );
             """;
 
+        String createSecureStore = """
+            CREATE TABLE IF NOT EXISTS secure_store (
+                store_key   VARCHAR(255) PRIMARY KEY,
+                store_value TEXT NOT NULL
+            );
+            """;
+
+        String createAuditLog = """
+            CREATE TABLE IF NOT EXISTS audit_log (
+                id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+                timestamp   VARCHAR(50) NOT NULL,
+                user_id     VARCHAR(100) NOT NULL,
+                action      VARCHAR(50) NOT NULL,
+                data        VARCHAR(500),
+                entry_hash  VARCHAR(255) NOT NULL
+            );
+            """;
+
         String insertSampleProducts = """
             INSERT IGNORE INTO products (id, name, description, price, stock, category) VALUES
             (3, 'iPhone 14',       'Apple smartphone latest generation',  999.99,  10, 'Smartphones'),
@@ -113,6 +131,10 @@ public class databaseInitializer {
             System.out.println("📝 Order items table ready");
             stmt.execute(createPayments);
             System.out.println("💳 Payments table ready");
+            stmt.execute(createSecureStore);
+            System.out.println("🔐 Secure store table ready");
+            stmt.execute(createAuditLog);
+            System.out.println("📋 Audit log table ready");
             stmt.execute(insertSampleProducts);
             System.out.println("🛒 Sample products inserted");
             System.out.println("✅ Database initialized with MySQL");

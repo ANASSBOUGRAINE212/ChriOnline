@@ -1025,21 +1025,25 @@ public class authMenu {
         col2.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(col1, col2);
 
-        Button closeBtn = gradientIconBtn("fas-check", "Close");
+        Button closeBtn = dangerIconBtn("fas-times", "Close");
         closeBtn.setOnAction(e -> dlg.close());
 
         VBox contentBox = vbox(12, titleRow, accentLine, loadingLbl, closeBtn);
         contentBox.setPadding(new Insets(20));
         contentBox.setStyle("-fx-background-color: " + CARD_BG + "; -fx-background-radius: 16;");
 
+        final double[] productPrice = {0.0};
+
         new Thread(() -> {
             response res = connection.getProduct(productId);
             Platform.runLater(() -> {
                 contentBox.getChildren().remove(loadingLbl);
+                contentBox.getChildren().remove(closeBtn);
                 contentBox.getChildren().add(2, grid);
 
                 if (!res.isSuccess()) {
                     grid.add(label("Unable to load details: " + res.getMessage(), 12, FontWeight.NORMAL, ERROR_C), 0, 0, 2, 1);
+                    contentBox.getChildren().add(closeBtn);
                     return;
                 }
 
@@ -1052,7 +1056,7 @@ public class authMenu {
                     {"fas-dollar-sign", "Price",       "price"},
                     {"fas-cubes",       "Stock",       "stock"},
                     {"fas-tag",         "Category",    "category"},
-                    {"fas-user-shield", "Created By",  "created by"},
+                    {"fas-user-shield", "Created By",  "added by"},
                     {"fas-box",         "Name",        "name"},          // full-width
                     {"fas-align-left",  "Description", "description"},  // full-width
                 };
@@ -1061,11 +1065,25 @@ public class authMenu {
                 String[] values = new String[fields.length];
                 for (int i = 0; i < fields.length; i++) {
                     values[i] = "—";
+                    // Special case for ID - use the productId parameter
+                    if (fields[i][2].equals("id")) {
+                        values[i] = String.valueOf(productId);
+                        continue;
+                    }
                     for (String line : raw.split("\n")) {
                         String s = line.replaceAll("[^\\x20-\\x7E]", "").trim();
                         if (s.toLowerCase().contains(fields[i][2] + ":")) {
                             int idx = s.indexOf(":");
-                            if (idx >= 0) { values[i] = s.substring(idx + 1).trim(); break; }
+                            if (idx >= 0) { 
+                                values[i] = s.substring(idx + 1).trim();
+                                // Store price for add to cart
+                                if (fields[i][2].equals("price")) {
+                                    try {
+                                        productPrice[0] = Double.parseDouble(values[i].replace("$", "").trim());
+                                    } catch (NumberFormatException ex) {}
+                                }
+                                break; 
+                            }
                         }
                     }
                 }
@@ -1092,6 +1110,28 @@ public class authMenu {
                     grid.add(cell, 0, gridRow, 2, 1);
                     gridRow++;
                 }
+
+                // Add "Add to Cart" button
+                Button addToCartBtn = gradientIconBtn("fas-shopping-cart", "Add to Cart");
+                addToCartBtn.setOnAction(ev -> {
+                    addToCartBtn.setDisable(true);
+                    new Thread(() -> {
+                        response cartRes = connection.addToCart(productId, 1, productPrice[0]);
+                        Platform.runLater(() -> {
+                            addToCartBtn.setDisable(false);
+                            if (cartRes.isSuccess()) {
+                                dlg.close();
+                                showSuccessDialog("Product added to cart!");
+                            } else {
+                                shakeAndError(label("", 12, FontWeight.NORMAL, ERROR_C), "Failed: " + cartRes.getMessage());
+                            }
+                        });
+                    }).start();
+                });
+
+                HBox buttonRow = new HBox(10, addToCartBtn, closeBtn);
+                buttonRow.setAlignment(Pos.CENTER);
+                contentBox.getChildren().add(buttonRow);
             });
         }).start();
 
