@@ -372,7 +372,6 @@ public class cartMenu {
                     return;
                 }
 
-                // Total highlight card
                 String raw = res.getMessage().replace("\\n", "\n");
                 HBox totalCard = new HBox(12,
                         faIcon("fas-dollar-sign", SUCCESS_C, 22),
@@ -421,7 +420,7 @@ public class cartMenu {
             Platform.runLater(() -> {
                 contentBox.getChildren().remove(loadingLbl);
 
-                String msg = res.isSuccess() ? res.getMessage() : "Error: " + res.getMessage();
+                String msg   = res.isSuccess() ? res.getMessage() : "Error: " + res.getMessage();
                 String color = res.isSuccess() ? ACCENT2 : ERROR_C;
 
                 HBox countCard = new HBox(12,
@@ -454,9 +453,9 @@ public class cartMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void handleGetItemDetails() {
         Stage dlg = dialogStage("Item Details");
-        Label title       = glowLabel("Item Details", 18, FontWeight.BOLD);
-        TextField idFld   = fancyTextField("Product ID", "fas-search");
-        Label errLbl      = errorLabel();
+        Label title     = glowLabel("Item Details", 18, FontWeight.BOLD);
+        TextField idFld = fancyTextField("Product ID", "fas-search");
+        Label errLbl    = errorLabel();
 
         VBox detailBox = vbox(10);
         ScrollPane sp  = new ScrollPane(detailBox);
@@ -527,7 +526,6 @@ public class cartMenu {
         Label warning = label("This will permanently remove all items from your cart. This action cannot be undone.", 12, FontWeight.NORMAL, ERROR_C);
         warning.setWrapText(true);
 
-        // Warning card
         HBox warningCard = new HBox(10, faIcon("fas-exclamation-triangle", ERROR_C, 14), warning);
         warningCard.setAlignment(Pos.CENTER_LEFT);
         warningCard.setPadding(new Insets(14, 16, 14, 16));
@@ -571,7 +569,7 @@ public class cartMenu {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    //  UI HELPERS  (mirrors authMenu helpers)
+    //  UI HELPERS
     // ══════════════════════════════════════════════════════════════════════════
 
     private FontIcon faIcon(String iconCode, String color, double size) {

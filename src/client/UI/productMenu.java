@@ -1,4 +1,5 @@
 package client.UI;
+
 import client.clientConnection;
 import java.util.Scanner;
 import javafx.animation.*;
@@ -117,8 +118,6 @@ public class productMenu {
         Button searchBtn= gradientIconBtn("fas-search", "Search");
 
         VBox infoBox = vbox(10);
-        final String[] currentPrice = {null};
-        final String[] currentProductId = {null};
 
         searchBtn.setOnAction(e -> {
             String idStr = idFld.getText().trim();
@@ -129,8 +128,6 @@ public class productMenu {
             searchBtn.setDisable(true);
             updateBtnText(searchBtn, "fas-spinner", "Searching…");
             infoBox.getChildren().clear();
-            currentPrice[0] = null;
-            currentProductId[0] = idStr;
 
             new Thread(() -> {
                 response res = connection.getProduct(Integer.parseInt(idStr));
@@ -144,33 +141,22 @@ public class productMenu {
                     errLbl.setVisible(false); errLbl.setManaged(false);
                     String raw = res.getMessage().replace("\\n", "\n");
 
-                    // First add the ID row manually since it's not in the response
-                    infoBox.getChildren().add(infoRow("fas-hashtag", "ID", idStr));
-
                     String[][] fields = {
+                        {"fas-hashtag",       "ID",          "id"},
                         {"fas-box",           "Name",        "name"},
                         {"fas-align-left",    "Description", "description"},
                         {"fas-dollar-sign",   "Price",       "price"},
                         {"fas-cubes",         "Stock",       "stock"},
                         {"fas-tag",           "Category",    "category"},
-                        {"fas-user-shield",   "Created By",  "added by"},
+                        {"fas-user-shield",   "Created By",  "created by"},
                     };
 
                     for (String[] f : fields) {
                         String value = "—";
                         for (String line : raw.split("\n")) {
                             String s = line.replaceAll("[^\\x20-\\x7E]", "").trim();
-                            String lowerLine = s.toLowerCase();
-                            String searchKey = f[2].toLowerCase();
-                            if (lowerLine.contains(searchKey + ":")) {
-                                int idx = s.indexOf(":"); 
-                                if (idx >= 0) { 
-                                    value = s.substring(idx + 1).trim(); 
-                                    if (f[2].equals("price")) {
-                                        currentPrice[0] = value.replace("$", "").trim();
-                                    }
-                                    break; 
-                                }
+                            if (s.toLowerCase().contains(f[2] + ":")) {
+                                int idx = s.indexOf(":"); if (idx >= 0) { value = s.substring(idx + 1).trim(); break; }
                             }
                         }
                         infoBox.getChildren().add(infoRow(f[0], f[1], value));

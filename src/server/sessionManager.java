@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.UUID;
 
 public class sessionManager {
-
     private static sessionManager instance;
     private final Map<String, String> tokenToUserId = new HashMap<>();
 
@@ -24,7 +23,6 @@ public class sessionManager {
         return tokenToUserId.get(token);
     }
 
-    // Your classmate will fill these in later
     public String createSession(String userId) {
         String token = UUID.randomUUID().toString();
         tokenToUserId.put(token, userId);

@@ -1,4 +1,9 @@
 package client;
+
+import client.UI.SecurityIndicator;
+import client.ClientHandShake;
+import security.RSA.AESSessionKey;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -7,26 +12,76 @@ import protocol.request;
 import protocol.response;
 
 public class clientConnection {
+
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
     private String sessionToken;
     private String userRole;
+    private AESSessionKey sessionKey;            // AES session key (from RSA handshake)
+    private SecurityIndicator securityIndicator; // UI lock widget (optional)
 
+    // ── Constructor ───────────────────────────────────────────────
     public clientConnection(String host, int port) {
         System.out.println("🔌 Connecting to " + host + ":" + port);
         try {
             this.socket = new Socket(host, port);
             this.out    = new ObjectOutputStream(socket.getOutputStream());
-            this.in     = new ObjectInputStream(socket.getInputStream()); 
+            this.in     = new ObjectInputStream(socket.getInputStream());
             this.sessionToken = null;
             System.out.println("✅ Connected successfully!");
+
+            // RSA Handshake immediately after connection
+            performHandshake();
+
         } catch (IOException e) {
             System.out.println("❌ Connection failed: " + e.getMessage());
             throw new RuntimeException("Could not connect to server", e);
         }
     }
 
+    // ── RSA Handshake ─────────────────────────────────────────────
+    private void performHandshake() {
+        ClientHandShake handshake = new ClientHandShake(new ClientHandShake.HandshakeListener() {
+            @Override
+            public void onHandshakeSuccess(String sessionId, String fingerprint) {
+                System.out.println("🔒 Secure session established: " + sessionId);
+                if (securityIndicator != null)
+                    securityIndicator.setSecured(sessionId, fingerprint);
+            }
+            @Override
+            public void onHandshakeFailure(String reason) {
+                System.err.println("❌ Handshake failed: " + reason);
+                if (securityIndicator != null)
+                    securityIndicator.setError(reason);
+            }
+            @Override
+            public void onStatusUpdate(String status) {
+                System.out.println(status);
+                if (securityIndicator != null)
+                    securityIndicator.setConnecting(status);
+            }
+        });
+
+        boolean ok = handshake.performHandshake(in, out);
+        if (!ok) {
+            throw new RuntimeException("RSA Handshake failed — connection refused");
+        }
+        this.sessionKey = handshake.getSessionKey();
+    }
+
+    // ── Security helpers ──────────────────────────────────────────
+    /** Attach the UI lock widget (call before any requests). */
+    public void setSecurityIndicator(SecurityIndicator indicator) {
+        this.securityIndicator = indicator;
+    }
+
+    /** Returns true once the RSA handshake has completed successfully. */
+    public boolean isSecure() {
+        return sessionKey != null;
+    }
+
+    // ── Core send/receive ─────────────────────────────────────────
     private response sendRequest(request req) {
         try {
             System.out.println("📤 Sending request: " + req.getType());
@@ -44,18 +99,19 @@ public class clientConnection {
     // ── Auth ─────────────────────────────────────────────────────
     public response login(String email, String password) {
         request req = new request(request.LOGIN);
-        req.setParam("email", email);
+        req.setParam("email",    email);
         req.setParam("password", password);
         return sendRequest(req);
     }
 
-    public response register(String username, String email, String password, String address, String phone) {
+    public response register(String username, String email, String password,
+                              String address, String phone) {
         request req = new request(request.REGISTER);
         req.setParam("username", username);
-        req.setParam("email", email);
+        req.setParam("email",    email);
         req.setParam("password", password);
-        req.setParam("address", address != null ? address : "");
-        req.setParam("phone",   phone   != null ? phone   : "");
+        req.setParam("address",  address != null ? address : "");
+        req.setParam("phone",    phone   != null ? phone   : "");
         return sendRequest(req);
     }
 
@@ -70,9 +126,9 @@ public class clientConnection {
         System.out.println("🎫 Session token updated");
     }
 
-    public void setUserRole(String role)  { this.userRole = role; }
-    public String getUserRole()           { return this.userRole; }
-    public boolean isAdmin()              { return "ADMIN".equals(this.userRole); }
+    public void setUserRole(String role) { this.userRole = role; }
+    public String getUserRole()          { return this.userRole; }
+    public boolean isAdmin()             { return "ADMIN".equals(this.userRole); }
 
     public response getUserInfo() {
         request req = new request(request.GET_USER_INFO);
@@ -103,7 +159,8 @@ public class clientConnection {
     }
 
     // ── Products ─────────────────────────────────────────────────
-    public response addProduct(String name, String description, double price, int stock, String category) {
+    public response addProduct(String name, String description,
+                                double price, int stock, String category) {
         request req = new request(request.ADD_PRODUCT);
         req.setToken(sessionToken);
         req.setParam("name",        name);
@@ -152,8 +209,8 @@ public class clientConnection {
         request req = new request(request.ADD_TO_CART);
         req.setToken(sessionToken);
         req.setParam("productId", String.valueOf(productId));
-        req.setParam("quantity", String.valueOf(quantity));
-        req.setParam("price", String.valueOf(price));
+        req.setParam("quantity",  String.valueOf(quantity));
+        req.setParam("price",     String.valueOf(price));
         return sendRequest(req);
     }
 
@@ -163,9 +220,8 @@ public class clientConnection {
         return sendRequest(req);
     }
 
-    public response getCartItems() {
-        return getCart();
-    }
+    /** Alias for getCart() — kept for backward compatibility. */
+    public response getCartItems() { return getCart(); }
 
     public response removeFromCart(int productId) {
         request req = new request(request.REMOVE_FROM_CART);
@@ -181,16 +237,12 @@ public class clientConnection {
     }
 
     public response getCartItemCount() {
-        // For now, we'll get cart items and count them client-side
-        // You can add a server endpoint later if needed
         response res = getCart();
         if (res.isSuccess()) {
             String message = res.getMessage();
-            if (message.contains("empty")) {
+            if (message.contains("empty"))
                 return new response(true, "📦 Cart is empty (0 items)");
-            }
-            // Count lines that represent items (simple heuristic)
-            int count = message.split("\n").length - 3; // Subtract header/footer lines
+            int count = message.split("\n").length - 3; // subtract header/footer lines
             return new response(true, "📦 Cart contains " + Math.max(0, count) + " item(s)");
         }
         return res;
@@ -198,15 +250,14 @@ public class clientConnection {
 
     public response getItemDetails(String productId) {
         try {
-            int id = Integer.parseInt(productId);
-            return getProduct(id);
+            return getProduct(Integer.parseInt(productId));
         } catch (NumberFormatException e) {
             return new response(false, "Invalid product ID format");
         }
     }
 
     public response clearCart() {
-        // This would need a server endpoint - for now return not implemented
+        // Needs a dedicated server endpoint — not yet implemented
         return new response(false, "Clear cart feature not yet implemented on server");
     }
 
@@ -242,7 +293,7 @@ public class clientConnection {
         request req = new request(request.PROCESS_PAYMENT);
         req.setToken(sessionToken);
         req.setParam("orderId", orderId);
-        req.setParam("method", method);
+        req.setParam("method",  method);
         return sendRequest(req);
     }
 
@@ -267,6 +318,7 @@ public class clientConnection {
         return sendRequest(req);
     }
 
+    // ── Close ─────────────────────────────────────────────────────
     public void close() {
         try {
             if (out    != null) out.close();

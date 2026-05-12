@@ -23,7 +23,7 @@ import protocol.response;
 
 public class authMenu {
 
-    // ── palette ───────────────────────────────────────────────────────────────
+    // ── Palette ───────────────────────────────────────────────────────────────
     private static final String BG          = "#080818";
     private static final String CARD_BG     = "#10102a";
     private static final String PANEL_BG    = "#0b0b20";
@@ -45,6 +45,9 @@ public class authMenu {
     // ── Shared reference to dashboard main content scroll ────────────────────
     private ScrollPane mainContentScroll;
 
+    // ── 🔒 Security indicator (shown on auth screen & dashboard sidebar) ──────
+    private SecurityIndicator securityIndicator;
+
     // ── Ikonli icon helper ────────────────────────────────────────────────────
     private FontIcon faIcon(String iconCode, String color, double size) {
         FontIcon icon = new FontIcon(iconCode);
@@ -63,13 +66,23 @@ public class authMenu {
         return box;
     }
 
-    // ── public entry point ────────────────────────────────────────────────────
+    // ── Public entry point ────────────────────────────────────────────────────
     public void show(clientConnection connection, Stage stage) {
         this.connection = connection;
         this.stage      = stage;
         stage.setTitle("ChriOnline");
         stage.setMinWidth(900);
         stage.setMinHeight(620);
+
+        // Initialise the SecurityIndicator and bind it to the connection
+        this.securityIndicator = new SecurityIndicator();
+        connection.setSecurityIndicator(securityIndicator);
+        if (connection.isSecure()) {
+            securityIndicator.setSecured("Active", null);
+        } else {
+            securityIndicator.setUnsecured();
+        }
+
         if (!showAuthMenu()) return;
     }
 
@@ -104,7 +117,6 @@ public class authMenu {
         VBox brandBox = vbox(8, logo, tagLine, accentLine);
         brandBox.setPadding(new Insets(0, 0, 28, 0));
 
-        // Login form
         Label loginTitle = label("Sign In", 20, FontWeight.BOLD, TEXT_PRI);
         Label loginSub   = label("Welcome back", 12, FontWeight.NORMAL, TEXT_SEC);
         VBox loginHeader = vbox(3, loginTitle, loginSub);
@@ -114,20 +126,22 @@ public class authMenu {
         VBox leftContent = vbox(24, brandBox, loginHeader, loginForm);
         leftContent.setPadding(new Insets(44, 40, 44, 44));
 
-        // Bottom action buttons for left panel
+        // Bottom: action buttons + 🔒 security indicator
         Button guestBtn = glassIconBtn("fas-shopping-bag", "Browse as Guest");
         guestBtn.setOnAction(e -> showGuestProducts());
         Button exitBtn  = dangerIconBtn("fas-sign-out-alt", "Exit");
         exitBtn.setOnAction(e -> stage.close());
 
         HBox bottomBtns = new HBox(12, guestBtn, exitBtn);
-        bottomBtns.setPadding(new Insets(0, 40, 32, 44));
         HBox.setHgrow(guestBtn, Priority.ALWAYS);
         HBox.setHgrow(exitBtn,  Priority.ALWAYS);
 
+        VBox leftBottom = new VBox(8, bottomBtns, securityIndicator);
+        leftBottom.setPadding(new Insets(0, 40, 24, 44));
+
         VBox leftPanel = new VBox();
         VBox.setVgrow(leftContent, Priority.ALWAYS);
-        leftPanel.getChildren().addAll(leftContent, bottomBtns);
+        leftPanel.getChildren().addAll(leftContent, leftBottom);
         leftPanel.setStyle(
             "-fx-background-color: " + PANEL_BG + ";" +
             "-fx-border-color: transparent " + DIVIDER + " transparent transparent;" +
@@ -141,7 +155,6 @@ public class authMenu {
         Label regSub   = label("Join ChriOnline today", 12, FontWeight.NORMAL, TEXT_SEC);
         VBox regHeader = vbox(3, regTitle, regSub);
 
-        // Thin accent line
         Rectangle accentLine2 = new Rectangle(60, 3);
         accentLine2.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
                 new Stop(0, Color.web(ACCENT2)),
@@ -165,13 +178,10 @@ public class authMenu {
         HBox.setHgrow(rightPanel, Priority.ALWAYS);
         splitLayout.setFillHeight(true);
 
-        // Outer window chrome
         StackPane root = animatedRoot(splitLayout);
-
         Scene scene = new Scene(root, 920, 640);
         scene.getStylesheets().add(buildCSS());
 
-        // Entrance animation
         FadeTransition ft = new FadeTransition(Duration.millis(500), splitLayout);
         ft.setFromValue(0); ft.setToValue(1);
         TranslateTransition tt = new TranslateTransition(Duration.millis(500), splitLayout);
@@ -206,11 +216,10 @@ public class authMenu {
             }).start();
         });
 
-        VBox form = vbox(14,
+        return vbox(14,
                 fancyFieldGroup("Email",    emailFld),
                 fancyFieldGroup("Password", passFld),
                 errLbl, loginBtn);
-        return form;
     }
 
     // ── Register tab ──────────────────────────────────────────────────────────
@@ -307,7 +316,7 @@ public class authMenu {
         Label sidebarLogo = label("ChriOnline", 16, FontWeight.BOLD, TEXT_PRI);
         HBox sidebarBrand = new HBox(8, sidebarStar, sidebarLogo);
         sidebarBrand.setAlignment(Pos.CENTER_LEFT);
-        sidebarBrand.setPadding(new Insets(0, 0, 16, 0));
+        sidebarBrand.setPadding(new Insets(0, 0, 8, 0)); // tighter: leaves room for security widget
 
         Rectangle sidebarLine = new Rectangle(40, 2);
         sidebarLine.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
@@ -319,15 +328,24 @@ public class authMenu {
                 label(isAdmin ? "Admin" : "Member", 11, FontWeight.BOLD,
                         isAdmin ? ACCENT2 : SUCCESS_C));
         roleRow.setAlignment(Pos.CENTER_LEFT);
-        roleRow.setPadding(new Insets(8, 0, 20, 0));
+        roleRow.setPadding(new Insets(6, 0, 12, 0));
+
+        // 🔒 Fresh SecurityIndicator for the dashboard sidebar (same connection)
+        SecurityIndicator dashSecIndicator = new SecurityIndicator();
+        connection.setSecurityIndicator(dashSecIndicator);
+        if (connection.isSecure()) {
+            dashSecIndicator.setSecured("Active", null);
+        }
+        dashSecIndicator.setMaxWidth(Double.MAX_VALUE);
+        dashSecIndicator.setPadding(new Insets(4, 0, 12, 0));
 
         VBox sidebarMenu = vbox(4);
 
-        addSidebarBtn(sidebarMenu, "fas-user",         "View My Info",      () -> showUserInfo());
-        addSidebarBtn(sidebarMenu, "fas-chart-bar",    "My Profile",        () -> getProfile());
-        addSidebarBtn(sidebarMenu, "fas-edit",         "Update Profile",    () -> updateProfile());
-        addSidebarBtn(sidebarMenu, "fas-lock",         "Change Password",   () -> changePassword());
-        addSidebarBtn(sidebarMenu, "fas-shopping-bag", "Product Catalog",   () -> showProductList());
+        addSidebarBtn(sidebarMenu, "fas-user",         "View My Info",    () -> showUserInfo());
+        addSidebarBtn(sidebarMenu, "fas-chart-bar",    "My Profile",      () -> getProfile());
+        addSidebarBtn(sidebarMenu, "fas-edit",         "Update Profile",  () -> updateProfile());
+        addSidebarBtn(sidebarMenu, "fas-lock",         "Change Password", () -> changePassword());
+        addSidebarBtn(sidebarMenu, "fas-shopping-bag", "Product Catalog", () -> showProductList());
 
         if (isAdmin) {
             Button adminBtn = sidebarAdminBtn("fas-wrench", "Product Mgmt");
@@ -335,16 +353,16 @@ public class authMenu {
             sidebarMenu.getChildren().add(adminBtn);
         }
 
-        addSidebarBtn(sidebarMenu, "fas-shopping-cart", "Shopping Cart",   () -> new cartMenu(connection, null).show());
-        addSidebarBtn(sidebarMenu, "fas-cube",           "My Orders",      () -> new orderMenu(connection, null).show());
-        addSidebarBtn(sidebarMenu, "fas-credit-card",    "Payments",       () -> new paymentMenu(connection, null).show());
+        addSidebarBtn(sidebarMenu, "fas-shopping-cart", "Shopping Cart", () -> new cartMenu(connection, null).show());
+        addSidebarBtn(sidebarMenu, "fas-cube",          "My Orders",     () -> new orderMenu(connection, null).show());
+        addSidebarBtn(sidebarMenu, "fas-credit-card",   "Payments",      () -> new paymentMenu(connection, null).show());
 
         VBox.setVgrow(sidebarMenu, Priority.ALWAYS);
 
         Button logoutBtn = sidebarDangerBtn("fas-sign-out-alt", "Logout");
         logoutBtn.setOnAction(e -> handleLogout());
 
-        VBox sidebar = new VBox(sidebarBrand, sidebarLine, roleRow, sidebarMenu, logoutBtn);
+        VBox sidebar = new VBox(sidebarBrand, sidebarLine, roleRow, dashSecIndicator, sidebarMenu, logoutBtn);
         sidebar.setPadding(new Insets(28, 16, 24, 20));
         sidebar.setStyle(
             "-fx-background-color: " + PANEL_BG + ";" +
@@ -356,7 +374,6 @@ public class authMenu {
         VBox.setVgrow(sidebarMenu, Priority.ALWAYS);
 
         // ── Main content area ─────────────────────────────────────────────────
-        // ── Assign the shared scroll pane so showProductList() can update it ──
         mainContentScroll = new ScrollPane(buildDashboardContent(isAdmin));
         mainContentScroll.setFitToWidth(true);
         mainContentScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
@@ -374,7 +391,7 @@ public class authMenu {
         ft.play();
     }
 
-    // Quick-action card for dashboard grid
+    // ── Quick-action card for dashboard grid ──────────────────────────────────
     private Button quickActionCard(String iconCode, String title, String sub) {
         FontIcon iv = faIcon(iconCode, ACCENT2, 22);
         Label titleLbl = label(title, 14, FontWeight.BOLD, TEXT_PRI);
@@ -502,9 +519,7 @@ public class authMenu {
         Stage dlg = dialogStage("User Information");
         Label title = glowLabel("USER INFORMATION", 16, FontWeight.BOLD);
         Label loadingLbl = label("Loading…", 13, FontWeight.NORMAL, TEXT_SEC);
-
         VBox infoBox = vbox(10);
-
         Button ok = gradientIconBtn("fas-check", "Close");
         ok.setOnAction(e -> dlg.close());
 
@@ -517,77 +532,11 @@ public class authMenu {
             Platform.runLater(() -> {
                 contentBox.getChildren().remove(loadingLbl);
                 contentBox.getChildren().add(1, infoBox);
-
                 if (!res.isSuccess()) {
                     infoBox.getChildren().add(label("Unable to load user info: " + res.getMessage(), 13, FontWeight.NORMAL, ERROR_C));
                     return;
                 }
-
-                String[][] fieldDefs = {
-                    {"fas-user",        "Username",  "username"},
-                    {"fas-envelope",    "Email",     "email"},
-                    {"fas-map-marker-alt","Address", "address"},
-                    {"fas-phone",       "Phone",     "phone"},
-                    {"fas-shield-alt",  "Role",      "role"},
-                };
-
-                String raw = res.getMessage().replace("\\n", "\n");
-
-                for (String[] def : fieldDefs) {
-                    String iconCode = def[0];
-                    String label    = def[1];
-                    String key      = def[2];
-
-                    // Find value: look for "Key: value" pattern (case-insensitive)
-                    String value = "—";
-                    for (String line : raw.split("\n")) {
-                        String stripped = line.replaceAll("[^\\x20-\\x7E]", "").trim();
-                        if (stripped.toLowerCase().contains(label.toLowerCase() + ":")) {
-                            int idx = stripped.indexOf(":");
-                            if (idx >= 0) { value = stripped.substring(idx + 1).trim(); break; }
-                        }
-                    }
-
-                    boolean isRole = key.equals("role");
-                    String valueColor = isRole
-                        ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C)
-                        : TEXT_PRI;
-                    String iconColor = isRole
-                        ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C)
-                        : ACCENT2;
-
-                    FontIcon iv = faIcon(iconCode, iconColor, 14);
-                    StackPane iconWrap = new StackPane(iv);
-                    iconWrap.setMinSize(32, 32);
-                    iconWrap.setMaxSize(32, 32);
-                    iconWrap.setStyle(
-                        "-fx-background-color: rgba(124,111,253,0.12);" +
-                        "-fx-background-radius: 8;"
-                    );
-
-                    Label keyLbl = label(label, 11, FontWeight.BOLD, TEXT_SEC);
-                    Label valLbl = label(value, 14, FontWeight.BOLD, valueColor);
-
-                    VBox textCol = vbox(2, keyLbl, valLbl);
-                    HBox.setHgrow(textCol, Priority.ALWAYS);
-
-                    HBox row = new HBox(12, iconWrap, textCol);
-                    row.setAlignment(Pos.CENTER_LEFT);
-                    row.setPadding(new Insets(12, 16, 12, 16));
-                    row.setStyle(
-                        "-fx-background-color: rgba(255,255,255,0.03);" +
-                        "-fx-border-color: " + BORDER + ";" +
-                        "-fx-border-radius: 10;" +
-                        "-fx-background-radius: 10;"
-                    );
-                    row.setOnMouseEntered(e -> row.setStyle(row.getStyle().replace("rgba(255,255,255,0.03)", "rgba(124,111,253,0.10)")));
-                    row.setOnMouseExited (e -> row.setStyle(row.getStyle().replace("rgba(124,111,253,0.10)", "rgba(255,255,255,0.03)")));
-
-                    FadeTransition ft = new FadeTransition(Duration.millis(250 + infoBox.getChildren().size() * 60L), row);
-                    ft.setFromValue(0); ft.setToValue(1);
-                    infoBox.getChildren().add(row);
-                    ft.play();
-                }
+                renderInfoRows(infoBox, res.getMessage());
             });
         }).start();
 
@@ -602,9 +551,7 @@ public class authMenu {
         Stage dlg = dialogStage("Your Profile");
         Label title = glowLabel("YOUR PROFILE", 16, FontWeight.BOLD);
         Label loadingLbl = label("Loading…", 13, FontWeight.NORMAL, TEXT_SEC);
-
         VBox infoBox = vbox(10);
-
         Button ok = gradientIconBtn("fas-check", "Close");
         ok.setOnAction(e -> dlg.close());
 
@@ -617,74 +564,78 @@ public class authMenu {
             Platform.runLater(() -> {
                 contentBox.getChildren().remove(loadingLbl);
                 contentBox.getChildren().add(1, infoBox);
-
                 if (!res.isSuccess()) {
                     infoBox.getChildren().add(label("Unable to load profile: " + res.getMessage(), 13, FontWeight.NORMAL, ERROR_C));
                     return;
                 }
-
-                String[][] fieldDefs = {
-                    {"fas-user",          "Username",  "username"},
-                    {"fas-envelope",      "Email",     "email"},
-                    {"fas-map-marker-alt","Address",   "address"},
-                    {"fas-phone",         "Phone",     "phone"},
-                    {"fas-shield-alt",    "Role",      "role"},
-                };
-
-                String raw = res.getMessage().replace("\\n", "\n");
-
-                for (String[] def : fieldDefs) {
-                    String iconCode = def[0];
-                    String labelTxt = def[1];
-                    String key      = def[2];
-
-                    String value = "—";
-                    for (String line : raw.split("\n")) {
-                        String stripped = line.replaceAll("[^\\x20-\\x7E]", "").trim();
-                        if (stripped.toLowerCase().contains(labelTxt.toLowerCase() + ":")) {
-                            int idx = stripped.indexOf(":");
-                            if (idx >= 0) { value = stripped.substring(idx + 1).trim(); break; }
-                        }
-                    }
-
-                    boolean isRole = key.equals("role");
-                    String valueColor = isRole ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C) : TEXT_PRI;
-                    String iconColor  = isRole ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C) : ACCENT2;
-
-                    FontIcon iv = faIcon(iconCode, iconColor, 14);
-                    StackPane iconWrap = new StackPane(iv);
-                    iconWrap.setMinSize(32, 32);
-                    iconWrap.setMaxSize(32, 32);
-                    iconWrap.setStyle("-fx-background-color: rgba(124,111,253,0.12); -fx-background-radius: 8;");
-
-                    Label keyLbl = label(labelTxt, 11, FontWeight.BOLD, TEXT_SEC);
-                    Label valLbl = label(value,    14, FontWeight.BOLD, valueColor);
-
-                    VBox textCol = vbox(2, keyLbl, valLbl);
-                    HBox.setHgrow(textCol, Priority.ALWAYS);
-
-                    HBox row = new HBox(12, iconWrap, textCol);
-                    row.setAlignment(Pos.CENTER_LEFT);
-                    row.setPadding(new Insets(12, 16, 12, 16));
-                    row.setStyle(
-                        "-fx-background-color: rgba(255,255,255,0.03);" +
-                        "-fx-border-color: " + BORDER + ";" +
-                        "-fx-border-radius: 10;" +
-                        "-fx-background-radius: 10;"
-                    );
-                    row.setOnMouseEntered(e -> row.setStyle(row.getStyle().replace("rgba(255,255,255,0.03)", "rgba(124,111,253,0.10)")));
-                    row.setOnMouseExited (e -> row.setStyle(row.getStyle().replace("rgba(124,111,253,0.10)", "rgba(255,255,255,0.03)")));
-
-                    FadeTransition ft = new FadeTransition(Duration.millis(250 + infoBox.getChildren().size() * 60L), row);
-                    ft.setFromValue(0); ft.setToValue(1);
-                    infoBox.getChildren().add(row);
-                    ft.play();
-                }
+                renderInfoRows(infoBox, res.getMessage());
             });
         }).start();
 
         dlg.setScene(new Scene(animatedRoot(contentBox), 480, 460));
         dlg.show();
+    }
+
+    /**
+     * Shared helper: renders the standard 5-field user info rows into a VBox.
+     * Used by both showUserInfo() and getProfile() to avoid code duplication.
+     */
+    private void renderInfoRows(VBox infoBox, String rawMessage) {
+        String[][] fieldDefs = {
+            {"fas-user",           "Username", "username"},
+            {"fas-envelope",       "Email",    "email"},
+            {"fas-map-marker-alt", "Address",  "address"},
+            {"fas-phone",          "Phone",    "phone"},
+            {"fas-shield-alt",     "Role",     "role"},
+        };
+        String raw = rawMessage.replace("\\n", "\n");
+
+        for (String[] def : fieldDefs) {
+            String iconCode = def[0];
+            String labelTxt = def[1];
+            String key      = def[2];
+
+            String value = "—";
+            for (String line : raw.split("\n")) {
+                String stripped = line.replaceAll("[^\\x20-\\x7E]", "").trim();
+                if (stripped.toLowerCase().contains(labelTxt.toLowerCase() + ":")) {
+                    int idx = stripped.indexOf(":");
+                    if (idx >= 0) { value = stripped.substring(idx + 1).trim(); break; }
+                }
+            }
+
+            boolean isRole    = key.equals("role");
+            String valueColor = isRole ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C) : TEXT_PRI;
+            String iconColor  = isRole ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C) : ACCENT2;
+
+            FontIcon iv = faIcon(iconCode, iconColor, 14);
+            StackPane iconWrap = new StackPane(iv);
+            iconWrap.setMinSize(32, 32);
+            iconWrap.setMaxSize(32, 32);
+            iconWrap.setStyle("-fx-background-color: rgba(124,111,253,0.12); -fx-background-radius: 8;");
+
+            Label keyLbl = label(labelTxt, 11, FontWeight.BOLD, TEXT_SEC);
+            Label valLbl = label(value,    14, FontWeight.BOLD, valueColor);
+            VBox textCol = vbox(2, keyLbl, valLbl);
+            HBox.setHgrow(textCol, Priority.ALWAYS);
+
+            HBox row = new HBox(12, iconWrap, textCol);
+            row.setAlignment(Pos.CENTER_LEFT);
+            row.setPadding(new Insets(12, 16, 12, 16));
+            row.setStyle(
+                "-fx-background-color: rgba(255,255,255,0.03);" +
+                "-fx-border-color: " + BORDER + ";" +
+                "-fx-border-radius: 10;" +
+                "-fx-background-radius: 10;"
+            );
+            row.setOnMouseEntered(e -> row.setStyle(row.getStyle().replace("rgba(255,255,255,0.03)", "rgba(124,111,253,0.10)")));
+            row.setOnMouseExited (e -> row.setStyle(row.getStyle().replace("rgba(124,111,253,0.10)", "rgba(255,255,255,0.03)")));
+
+            FadeTransition ft = new FadeTransition(Duration.millis(250 + infoBox.getChildren().size() * 60L), row);
+            ft.setFromValue(0); ft.setToValue(1);
+            infoBox.getChildren().add(row);
+            ft.play();
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -729,9 +680,9 @@ public class authMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void changePassword() {
         Stage dlg = dialogStage("Change Password");
-        PasswordField oldFld  = fancyPassField("Current password",     "fas-key");
-        PasswordField newFld  = fancyPassField("New password",         "fas-lock");
-        PasswordField confFld = fancyPassField("Confirm new password",  "fas-check");
+        PasswordField oldFld  = fancyPassField("Current password",    "fas-key");
+        PasswordField newFld  = fancyPassField("New password",        "fas-lock");
+        PasswordField confFld = fancyPassField("Confirm new password","fas-check");
         Label         errLbl  = errorLabel();
         Button        saveBtn = gradientIconBtn("fas-lock", "Change Password");
 
@@ -740,8 +691,8 @@ public class authMenu {
             String newPass = newFld.getText();
             String confirm = confFld.getText();
             if (oldPass.isEmpty() || newPass.isEmpty()) { shakeAndError(errLbl, "Password cannot be empty!"); return; }
-            if (newPass.length() < 6) { shakeAndError(errLbl, "New password must be at least 6 characters!"); return; }
-            if (!newPass.equals(confirm)) { shakeAndError(errLbl, "Passwords don't match!"); return; }
+            if (newPass.length() < 6)                  { shakeAndError(errLbl, "New password must be at least 6 characters!"); return; }
+            if (!newPass.equals(confirm))               { shakeAndError(errLbl, "Passwords don't match!"); return; }
             saveBtn.setDisable(true);
             updateBtnText(saveBtn, "fas-sync", "Changing…");
             new Thread(() -> {
@@ -768,16 +719,14 @@ public class authMenu {
     //  showGuestProducts
     // ══════════════════════════════════════════════════════════════════════════
     private void showGuestProducts() {
-        Label title  = glowLabel("Product Catalog", 20, FontWeight.BOLD);
-
+        Label title    = glowLabel("Product Catalog", 20, FontWeight.BOLD);
         HBox noticeRow = new HBox(6,
                 faIcon("fas-lock", ACCENT2, 13),
                 label("Login to unlock all features", 13, FontWeight.NORMAL, ACCENT2));
         noticeRow.setAlignment(Pos.CENTER_LEFT);
 
-        TextArea area = fancyReadonlyArea("Loading products…");
-
-        Button backBtn = glassIconBtn("fas-arrow-left", "Back to Login");
+        TextArea area   = fancyReadonlyArea("Loading products…");
+        Button backBtn  = glassIconBtn("fas-arrow-left", "Back to Login");
         backBtn.setOnAction(e -> showAuthMenu());
 
         new Thread(() -> {
@@ -798,7 +747,7 @@ public class authMenu {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    //  buildDashboardContent  —  default dashboard home content
+    //  buildDashboardContent
     // ══════════════════════════════════════════════════════════════════════════
     private VBox buildDashboardContent(boolean isAdmin) {
         Label dashTitle = glowLabel("Dashboard", 26, FontWeight.BOLD);
@@ -839,10 +788,7 @@ public class authMenu {
             () -> new orderMenu(connection, null).show(),
             () -> new paymentMenu(connection, null).show(),
         };
-        String[] quickIcons = {
-            "fas-shopping-bag", "fas-shopping-cart",
-            "fas-cube", "fas-credit-card",
-        };
+        String[] quickIcons = {"fas-shopping-bag","fas-shopping-cart","fas-cube","fas-credit-card"};
 
         for (int i = 0; i < 4; i++) {
             final int idx = i;
@@ -860,17 +806,15 @@ public class authMenu {
     //  showProductList  —  renders inline in the dashboard main content area
     // ══════════════════════════════════════════════════════════════════════════
     private void showProductList() {
-        // Guard: if the dashboard scroll pane isn't set yet, do nothing
         if (mainContentScroll == null) return;
 
-        Label title      = glowLabel("Product Catalog", 20, FontWeight.BOLD);
-        Label dashSub    = label("Browse all available products", 13, FontWeight.NORMAL, TEXT_SEC);
+        Label title   = glowLabel("Product Catalog", 20, FontWeight.BOLD);
+        Label dashSub = label("Browse all available products", 13, FontWeight.NORMAL, TEXT_SEC);
 
         Button backBtn = glassIconBtn("fas-arrow-left", "Back to Dashboard");
         backBtn.setMaxWidth(Double.MAX_VALUE);
         backBtn.setOnAction(e -> {
-            boolean isAdmin = connection.isAdmin();
-            VBox dashContent = buildDashboardContent(isAdmin);
+            VBox dashContent = buildDashboardContent(connection.isAdmin());
             FadeTransition backFt = new FadeTransition(Duration.millis(250), dashContent);
             backFt.setFromValue(0); backFt.setToValue(1);
             mainContentScroll.setContent(dashContent);
@@ -878,7 +822,7 @@ public class authMenu {
             backFt.play();
         });
 
-        VBox  pageHeader = vbox(8, backBtn, title, dashSub);
+        VBox pageHeader = vbox(8, backBtn, title, dashSub);
         pageHeader.setPadding(new Insets(0, 0, 16, 0));
 
         Label loadingLbl = label("Loading products…", 13, FontWeight.NORMAL, TEXT_SEC);
@@ -892,7 +836,6 @@ public class authMenu {
         VBox contentBox = vbox(16, pageHeader, loadingLbl, cardsPane);
         contentBox.setPadding(new Insets(36, 36, 36, 32));
 
-        // Swap main content inline — no dialog
         mainContentScroll.setContent(contentBox);
         mainContentScroll.setVvalue(0);
 
@@ -904,17 +847,12 @@ public class authMenu {
             response res = connection.listProducts();
             Platform.runLater(() -> {
                 contentBox.getChildren().remove(loadingLbl);
-
                 if (!res.isSuccess()) {
                     cardsPane.getChildren().add(label("Unable to load products: " + res.getMessage(), 13, FontWeight.NORMAL, ERROR_C));
                     return;
                 }
-
                 String raw = res.getMessage().replace("\\n", "\n");
-                String[] lines = raw.split("\n");
-
-                for (String line : lines) {
-                    // Skip header/divider lines
+                for (String line : raw.split("\n")) {
                     if (!line.contains("|")) continue;
                     String stripped = line.replaceAll("[^\\x20-\\x7E]", " ").replaceAll("\\s+", " ").trim();
                     String[] parts = stripped.split("\\|");
@@ -950,7 +888,6 @@ public class authMenu {
                     HBox stockRow = new HBox(5, faIcon("fas-cubes", SUCCESS_C, 10),
                             label("Stock: " + fStock, 11, FontWeight.NORMAL, SUCCESS_C));
                     stockRow.setAlignment(Pos.CENTER_LEFT);
-
                     HBox idRow = new HBox(4, faIcon("fas-tag", TEXT_SEC, 10),
                             label("ID " + fId, 10, FontWeight.NORMAL, TEXT_SEC));
                     idRow.setAlignment(Pos.CENTER_LEFT);
@@ -988,20 +925,18 @@ public class authMenu {
                     cardsPane.getChildren().add(card);
                     cardFt.play();
                 }
-                if (cardsPane.getChildren().isEmpty()) {
+                if (cardsPane.getChildren().isEmpty())
                     cardsPane.getChildren().add(label("No products found.", 13, FontWeight.NORMAL, TEXT_SEC));
-                }
             });
         }).start();
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    //  showProductDetailDialog  —  popup with full product info on card click
+    //  showProductDetailDialog  —  popup with full product info + Add to Cart
     // ══════════════════════════════════════════════════════════════════════════
     private void showProductDetailDialog(int productId, String productName) {
         Stage dlg = dialogStage("Product Details");
 
-        // ── Header strip ──────────────────────────────────────────────────────
         FontIcon headerIcon = faIcon("fas-box-open", ACCENT2, 20);
         Label title = glowLabel(productName, 16, FontWeight.BOLD);
         HBox titleRow = new HBox(10, headerIcon, title);
@@ -1013,16 +948,10 @@ public class authMenu {
 
         Label loadingLbl = label("Loading details…", 12, FontWeight.NORMAL, TEXT_SEC);
 
-        // ── 2-column grid for fields ──────────────────────────────────────────
         GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(8);
-        ColumnConstraints col1 = new ColumnConstraints();
-        col1.setPercentWidth(50);
-        col1.setHgrow(Priority.ALWAYS);
-        ColumnConstraints col2 = new ColumnConstraints();
-        col2.setPercentWidth(50);
-        col2.setHgrow(Priority.ALWAYS);
+        grid.setHgap(10); grid.setVgap(8);
+        ColumnConstraints col1 = new ColumnConstraints(); col1.setPercentWidth(50); col1.setHgrow(Priority.ALWAYS);
+        ColumnConstraints col2 = new ColumnConstraints(); col2.setPercentWidth(50); col2.setHgrow(Priority.ALWAYS);
         grid.getColumnConstraints().addAll(col1, col2);
 
         Button closeBtn = dangerIconBtn("fas-times", "Close");
@@ -1048,47 +977,37 @@ public class authMenu {
                 }
 
                 String raw = res.getMessage().replace("\\n", "\n");
-
-                // fields: {icon, label, search-key}
-                // Description and Name span full width (col-span 2); others go in pairs
                 String[][] fields = {
                     {"fas-hashtag",     "ID",          "id"},
                     {"fas-dollar-sign", "Price",       "price"},
                     {"fas-cubes",       "Stock",       "stock"},
                     {"fas-tag",         "Category",    "category"},
-                    {"fas-user-shield", "Created By",  "added by"},
-                    {"fas-box",         "Name",        "name"},          // full-width
-                    {"fas-align-left",  "Description", "description"},  // full-width
+                    {"fas-user-shield", "Created By",  "created by"},
+                    {"fas-box",         "Name",        "name"},
+                    {"fas-align-left",  "Description", "description"},
                 };
 
-                // Resolve all values first
                 String[] values = new String[fields.length];
                 for (int i = 0; i < fields.length; i++) {
                     values[i] = "—";
-                    // Special case for ID - use the productId parameter
-                    if (fields[i][2].equals("id")) {
-                        values[i] = String.valueOf(productId);
-                        continue;
-                    }
+                    if (fields[i][2].equals("id")) { values[i] = String.valueOf(productId); continue; }
                     for (String line : raw.split("\n")) {
                         String s = line.replaceAll("[^\\x20-\\x7E]", "").trim();
                         if (s.toLowerCase().contains(fields[i][2] + ":")) {
                             int idx = s.indexOf(":");
-                            if (idx >= 0) { 
+                            if (idx >= 0) {
                                 values[i] = s.substring(idx + 1).trim();
-                                // Store price for add to cart
                                 if (fields[i][2].equals("price")) {
-                                    try {
-                                        productPrice[0] = Double.parseDouble(values[i].replace("$", "").trim());
-                                    } catch (NumberFormatException ex) {}
+                                    try { productPrice[0] = Double.parseDouble(values[i].replace("$", "").trim()); }
+                                    catch (NumberFormatException ignored) {}
                                 }
-                                break; 
+                                break;
                             }
                         }
                     }
                 }
 
-                // First 5 fields → 2-column grid (rows 0-2)
+                // First 5 fields → 2-column grid
                 int gridRow = 0, gridCol = 0;
                 for (int i = 0; i < 5; i++) {
                     VBox cell = miniFieldCell(fields[i][0], fields[i][1], values[i]);
@@ -1098,10 +1017,9 @@ public class authMenu {
                     gridCol++;
                     if (gridCol == 2) { gridCol = 0; gridRow++; }
                 }
-                // If the last row was only partially filled, move to the next row
                 if (gridCol != 0) gridRow++;
 
-                // Name + Description → full-width rows
+                // Name + Description → full-width
                 for (int i = 5; i < fields.length; i++) {
                     VBox cell = miniFieldCell(fields[i][0], fields[i][1], values[i]);
                     cell.setMaxWidth(Double.MAX_VALUE);
@@ -1111,7 +1029,7 @@ public class authMenu {
                     gridRow++;
                 }
 
-                // Add "Add to Cart" button
+                // Add to Cart button (from Dev 1)
                 Button addToCartBtn = gradientIconBtn("fas-shopping-cart", "Add to Cart");
                 addToCartBtn.setOnAction(ev -> {
                     addToCartBtn.setDisable(true);
@@ -1123,7 +1041,7 @@ public class authMenu {
                                 dlg.close();
                                 showSuccessDialog("Product added to cart!");
                             } else {
-                                shakeAndError(label("", 12, FontWeight.NORMAL, ERROR_C), "Failed: " + cartRes.getMessage());
+                                shakeAndError(errorLabel(), "Failed: " + cartRes.getMessage());
                             }
                         });
                     }).start();
@@ -1139,16 +1057,14 @@ public class authMenu {
         dlg.show();
     }
 
-    // compact cell used inside the 2-column product detail grid
+    // ── Compact cell used inside the 2-column product detail grid ────────────
     private VBox miniFieldCell(String iconCode, String key, String value) {
-        FontIcon iv = faIcon(iconCode, ACCENT2, 12);
-        Label keyLbl = label(key,   10, FontWeight.BOLD,  TEXT_SEC);
-        Label valLbl = label(value, 12, FontWeight.BOLD,  TEXT_PRI);
+        FontIcon iv  = faIcon(iconCode, ACCENT2, 12);
+        Label keyLbl = label(key,   10, FontWeight.BOLD, TEXT_SEC);
+        Label valLbl = label(value, 12, FontWeight.BOLD, TEXT_PRI);
         valLbl.setWrapText(true);
-
         HBox keyRow = new HBox(5, iv, keyLbl);
         keyRow.setAlignment(Pos.CENTER_LEFT);
-
         VBox cell = vbox(3, keyRow, valLbl);
         cell.setPadding(new Insets(8, 10, 8, 10));
         cell.setMaxWidth(Double.MAX_VALUE);
@@ -1349,7 +1265,7 @@ public class authMenu {
         return b;
     }
 
-    // kept for compatibility with other menus
+    /** Kept for backward compatibility with other menu classes. */
     private void addFancyMenuBtn(VBox parent, String iconCode, String title, String sub, Runnable action) {
         Button b = fancyMenuBtn(iconCode, title, sub);
         b.setOnAction(e -> { animateButtonPress(b); action.run(); });
@@ -1359,13 +1275,12 @@ public class authMenu {
     private Button fancyMenuBtn(String iconCode, String title, String sub) {
         FontIcon iconView = faIcon(iconCode, ACCENT2, 16);
         StackPane iconWrapper = new StackPane(iconView);
-        iconWrapper.setMinWidth(28);
-        iconWrapper.setPrefWidth(28);
+        iconWrapper.setMinWidth(28); iconWrapper.setPrefWidth(28);
         Label titleLbl = label(title, 13, FontWeight.BOLD, TEXT_PRI);
         Label subLbl   = label(sub,   11, FontWeight.NORMAL, TEXT_SEC);
         VBox  text     = vbox(2, titleLbl, subLbl);
         FontIcon arrow = faIcon("fas-angle-right", TEXT_SEC, 16);
-        HBox content = new HBox(14, iconWrapper, text, arrow);
+        HBox content   = new HBox(14, iconWrapper, text, arrow);
         content.setAlignment(Pos.CENTER_LEFT);
         HBox.setHgrow(text, Priority.ALWAYS);
         Button b = new Button();
@@ -1471,7 +1386,5 @@ public class authMenu {
         return dlg;
     }
 
-    private String buildCSS() {
-        return "";
-    }
+    private String buildCSS() { return ""; }
 }

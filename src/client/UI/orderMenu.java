@@ -21,25 +21,25 @@ import protocol.response;
 public class orderMenu {
 
     // ── palette (matches authMenu) ─────────────────────────────────────────
-    private static final String BG          = "#080818";
-    private static final String CARD_BG     = "#10102a";
-    private static final String PANEL_BG    = "#0b0b20";
-    private static final String ACCENT      = "#7c6ffd";
-    private static final String ACCENT2     = "#c084fc";
-    private static final String TEXT_PRI    = "#f0f0ff";
-    private static final String TEXT_SEC    = "#8888aa";
-    private static final String BORDER      = "#2a2a4a";
-    private static final String SUCCESS_C   = "#34d399";
-    private static final String ERROR_C     = "#fb7185";
-    private static final String FIELD_BG    = "#0d0d22";
-    private static final String GLOW        = "#7c6ffd66";
+    private static final String BG        = "#080818";
+    private static final String CARD_BG   = "#10102a";
+    private static final String PANEL_BG  = "#0b0b20";
+    private static final String ACCENT    = "#7c6ffd";
+    private static final String ACCENT2   = "#c084fc";
+    private static final String TEXT_PRI  = "#f0f0ff";
+    private static final String TEXT_SEC  = "#8888aa";
+    private static final String BORDER    = "#2a2a4a";
+    private static final String SUCCESS_C = "#34d399";
+    private static final String ERROR_C   = "#fb7185";
+    private static final String FIELD_BG  = "#0d0d22";
+    private static final String GLOW      = "#7c6ffd66";
 
     private final clientConnection connection;
     private Stage ownerStage;
 
     public orderMenu(clientConnection connection, Stage ownerStage) {
-        this.connection  = connection;
-        this.ownerStage  = ownerStage;
+        this.connection = connection;
+        this.ownerStage = ownerStage;
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -68,12 +68,12 @@ public class orderMenu {
         grid.getColumnConstraints().addAll(colConstraint(), colConstraint());
 
         String[][] items = {
-            {"fas-shopping-cart", "Create Order",      "Create order from cart"},
-            {"fas-list-alt",      "My Orders",         "View all your orders"},
-            {"fas-search",        "Order Details",     "Look up a specific order"},
-            {"fas-times-circle",  "Cancel Order",      "Cancel a pending order"},
-            {"fas-credit-card",   "Process Payment",   "Pay for an order"},
-            {"fas-receipt",       "Payment Receipt",   "Get a payment receipt"},
+            {"fas-shopping-cart", "Create Order",    "Create order from cart"},
+            {"fas-list-alt",      "My Orders",       "View all your orders"},
+            {"fas-search",        "Order Details",   "Look up a specific order"},
+            {"fas-times-circle",  "Cancel Order",    "Cancel a pending order"},
+            {"fas-credit-card",   "Process Payment", "Pay for an order"},
+            {"fas-receipt",       "Payment Receipt", "Get a payment receipt"},
         };
 
         Runnable[] actions = {
@@ -85,8 +85,6 @@ public class orderMenu {
             this::handleGetReceipt,
         };
 
-        String[] dangerItems = {"fas-times-circle"};
-
         for (int i = 0; i < items.length; i++) {
             final int idx = i;
             boolean isDanger = items[i][0].equals("fas-times-circle");
@@ -95,9 +93,7 @@ public class orderMenu {
             grid.add(card, i % 2, i / 2);
         }
 
-        VBox content = vbox(0, headerRow, accentLine, new VBox(16), grid);
-        ((VBox) content.getChildren().get(2)).setPrefHeight(4); // spacer
-        content = vbox(20, headerRow, accentLine, grid);
+        VBox content = vbox(20, headerRow, accentLine, grid);
         content.setPadding(new Insets(32));
         content.setStyle("-fx-background-color: " + CARD_BG + "; -fx-background-radius: 16;");
 
@@ -113,18 +109,18 @@ public class orderMenu {
 
     // ── Action card ───────────────────────────────────────────────────────────
     private Button actionCard(String iconCode, String title, String sub, boolean danger) {
-        String iconColor  = danger ? ERROR_C  : ACCENT2;
-        String hoverBg    = danger ? "rgba(251,113,133,0.13)" : "rgba(124,111,253,0.13)";
-        String defaultBg  = "rgba(255,255,255,0.04)";
+        String iconColor = danger ? ERROR_C  : ACCENT2;
+        String hoverBg   = danger ? "rgba(251,113,133,0.13)" : "rgba(124,111,253,0.13)";
+        String defaultBg = "rgba(255,255,255,0.04)";
 
         FontIcon icon    = faIcon(iconCode, iconColor, 22);
         StackPane iconBg = new StackPane(icon);
         iconBg.setMinSize(46, 46); iconBg.setMaxSize(46, 46);
         iconBg.setStyle("-fx-background-color: rgba(124,111,253,0.12); -fx-background-radius: 12;");
 
-        Label titleLbl = label(title, 13, FontWeight.BOLD, TEXT_PRI);
-        Label subLbl   = label(sub,   11, FontWeight.NORMAL, TEXT_SEC);
-        VBox  text     = vbox(4, titleLbl, subLbl);
+        Label titleLbl  = label(title, 13, FontWeight.BOLD, TEXT_PRI);
+        Label subLbl    = label(sub,   11, FontWeight.NORMAL, TEXT_SEC);
+        VBox  text      = vbox(4, titleLbl, subLbl);
 
         VBox cardContent = new VBox(12, iconBg, text);
         cardContent.setPadding(new Insets(18, 16, 18, 16));
@@ -158,8 +154,8 @@ public class orderMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void handleCreateOrder() {
         Stage dlg = dialogStage("Create Order");
-        Label title    = glowLabel("Create Order from Cart", 18, FontWeight.BOLD);
-        Label subtitle = label("This will create a new order from your current cart contents.", 12, FontWeight.NORMAL, TEXT_SEC);
+        Label title     = glowLabel("Create Order from Cart", 18, FontWeight.BOLD);
+        Label subtitle  = label("This will create a new order from your current cart contents.", 12, FontWeight.NORMAL, TEXT_SEC);
         Label resultLbl = label("", 13, FontWeight.NORMAL, TEXT_SEC);
         resultLbl.setWrapText(true);
 
@@ -328,8 +324,8 @@ public class orderMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void handleCancelOrder() {
         Stage dlg = dialogStage("Cancel Order");
-        Label title     = glowLabel("Cancel Order", 18, FontWeight.BOLD);
-        Label warning   = label("⚠  This action cannot be undone. The order will be permanently cancelled.", 12, FontWeight.NORMAL, ERROR_C);
+        Label title   = glowLabel("Cancel Order", 18, FontWeight.BOLD);
+        Label warning = label("⚠  This action cannot be undone. The order will be permanently cancelled.", 12, FontWeight.NORMAL, ERROR_C);
         warning.setWrapText(true);
         TextField idFld = fancyTextField("Enter Order ID", "fas-times-circle");
         Label errLbl    = errorLabel();
@@ -383,7 +379,7 @@ public class orderMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void handleProcessPayment() {
         Stage dlg = dialogStage("Process Payment");
-        Label title  = glowLabel("Process Payment", 18, FontWeight.BOLD);
+        Label title    = glowLabel("Process Payment", 18, FontWeight.BOLD);
         Label subtitle = label("Select a payment method and confirm your order.", 12, FontWeight.NORMAL, TEXT_SEC);
         TextField idFld = fancyTextField("Enter Order ID", "fas-cube");
         Label errLbl    = errorLabel();
@@ -482,9 +478,9 @@ public class orderMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void handleGetReceipt() {
         Stage dlg = dialogStage("Payment Receipt");
-        Label title      = glowLabel("Payment Receipt", 18, FontWeight.BOLD);
-        TextField idFld  = fancyTextField("Enter Payment ID", "fas-receipt");
-        Label errLbl     = errorLabel();
+        Label title     = glowLabel("Payment Receipt", 18, FontWeight.BOLD);
+        TextField idFld = fancyTextField("Enter Payment ID", "fas-receipt");
+        Label errLbl    = errorLabel();
 
         VBox receiptBox = vbox(10);
         ScrollPane sp   = new ScrollPane(receiptBox);
@@ -563,7 +559,7 @@ public class orderMenu {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    //  UI HELPERS  (mirrors authMenu helpers)
+    //  UI HELPERS
     // ══════════════════════════════════════════════════════════════════════════
 
     private FontIcon faIcon(String iconCode, String color, double size) {

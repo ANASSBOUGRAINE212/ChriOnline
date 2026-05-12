@@ -88,6 +88,7 @@ public class databaseInitializer {
             );
             """;
 
+        // Added by security dev — required for AES key storage
         String createSecureStore = """
             CREATE TABLE IF NOT EXISTS secure_store (
                 store_key   VARCHAR(255) PRIMARY KEY,
@@ -95,6 +96,7 @@ public class databaseInitializer {
             );
             """;
 
+        // Added by security dev — required for tamper-evident audit trail
         String createAuditLog = """
             CREATE TABLE IF NOT EXISTS audit_log (
                 id          BIGINT AUTO_INCREMENT PRIMARY KEY,

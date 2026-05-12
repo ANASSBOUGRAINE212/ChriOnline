@@ -1,30 +1,38 @@
 package protocol;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 public class request implements Serializable {
+
     public static final String REGISTER        = "REGISTER";
     public static final String LOGIN           = "LOGIN";
+    public static final String ADMIN_CHALLENGE_REQUEST  = "ADMIN_CHALLENGE_REQUEST";
+    public static final String ADMIN_CHALLENGE_RESPONSE = "ADMIN_CHALLENGE_RESPONSE";
     public static final String LOGOUT          = "LOGOUT";
     public static final String GET_USER_INFO   = "GET_USER_INFO";
     public static final String GET_PROFILE     = "GET_PROFILE";
     public static final String UPDATE_PROFILE  = "UPDATE_PROFILE";
     public static final String CHANGE_PASSWORD = "CHANGE_PASSWORD";
+
     public static final String ADD_PRODUCT     = "ADD_PRODUCT";
     public static final String DELETE_PRODUCT  = "DELETE_PRODUCT";
     public static final String GET_PRODUCT     = "GET_PRODUCT";
     public static final String UPDATE_PRODUCT  = "UPDATE_PRODUCT";
     public static final String LIST_PRODUCTS   = "LIST_PRODUCTS";
-    public static final String ADD_TO_CART     = "ADD_TO_CART";
+
+    public static final String ADD_TO_CART      = "ADD_TO_CART";
     public static final String REMOVE_FROM_CART = "REMOVE_FROM_CART";
-    public static final String GET_CART_ITEMS  = "GET_CART_ITEMS";
-    public static final String GET_CART_TOTAL  = "GET_CART_TOTAL";
-    public static final String CREATE_ORDER    = "CREATE_ORDER";
-    public static final String GET_ORDER       = "GET_ORDER";
-    public static final String LIST_ORDERS     = "LIST_ORDERS";
-    public static final String CANCEL_ORDER    = "CANCEL_ORDER";
+    public static final String GET_CART_ITEMS   = "GET_CART_ITEMS";
+    public static final String GET_CART_TOTAL   = "GET_CART_TOTAL";
+
+    public static final String CREATE_ORDER        = "CREATE_ORDER";
+    public static final String GET_ORDER           = "GET_ORDER";
+    public static final String LIST_ORDERS         = "LIST_ORDERS";
+    public static final String CANCEL_ORDER        = "CANCEL_ORDER";
     public static final String UPDATE_ORDER_STATUS = "UPDATE_ORDER_STATUS";
+
     public static final String PROCESS_PAYMENT = "PROCESS_PAYMENT";
     public static final String GET_PAYMENT     = "GET_PAYMENT";
     public static final String REFUND_PAYMENT  = "REFUND_PAYMENT";
@@ -34,8 +42,7 @@ public class request implements Serializable {
     private String token;
     private Map<String, String> params = new HashMap<>();
 
-    public request(String type) { this.type = type; }
-
+    public request(String type)           { this.type = type; }
     public String getType()               { return type; }
     public void setToken(String token)    { this.token = token; }
     public String getToken()              { return token; }
