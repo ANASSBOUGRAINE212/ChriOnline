@@ -310,8 +310,11 @@ public class authMenu {
     //  showMainMenu
     // ══════════════════════════════════════════════════════════════════════════
     private void showMainMenu() {
-        // Everyone is admin now
-        boolean isAdmin = true;
+        // Check if running in admin mode
+        String appMode = System.getProperty("app.mode", "client");
+        boolean isAdmin = "admin".equalsIgnoreCase(appMode);
+        
+        System.out.println("🔐 App Mode: " + appMode.toUpperCase() + " | Admin Access: " + isAdmin);
 
         // ── Sidebar ───────────────────────────────────────────────────────────
         FontIcon sidebarStar = faIcon("fas-star", ACCENT2, 18);
@@ -348,15 +351,19 @@ public class authMenu {
         addSidebarBtn(sidebarMenu, "fas-lock",         "Change Password", () -> changePassword());
         addSidebarBtn(sidebarMenu, "fas-shopping-bag", "Product Catalog", () -> showProductList());
 
-        // Product Management - available to all users
-        Button adminBtn = sidebarAdminBtn("fas-wrench", "Product Mgmt");
-        adminBtn.setOnAction(e -> new productMenu().show(connection, null, true));
-        sidebarMenu.getChildren().add(adminBtn);
+        // Product Management - ADMIN ONLY
+        if (isAdmin) {
+            Button adminBtn = sidebarAdminBtn("fas-wrench", "Product Mgmt");
+            adminBtn.setOnAction(e -> new productMenu().show(connection, null, true));
+            sidebarMenu.getChildren().add(adminBtn);
+        }
 
-        // Security Testing - NEW
-        Button securityBtn = sidebarSecurityBtn("fas-shield-alt", "Security Tests");
-        securityBtn.setOnAction(e -> new securityTestMenu().show(connection));
-        sidebarMenu.getChildren().add(securityBtn);
+        // Security Testing - ADMIN ONLY
+        if (isAdmin) {
+            Button securityBtn = sidebarSecurityBtn("fas-shield-alt", "Security Tests");
+            securityBtn.setOnAction(e -> new securityTestMenu().show(connection));
+            sidebarMenu.getChildren().add(securityBtn);
+        }
 
         addSidebarBtn(sidebarMenu, "fas-shopping-cart", "Shopping Cart", () -> new cartMenu(connection, null).show());
         addSidebarBtn(sidebarMenu, "fas-cube",          "My Orders",     () -> new orderMenu(connection, null).show());
@@ -770,9 +777,9 @@ public class authMenu {
                 faIcon(isAdmin ? "fas-bolt" : "fas-hand-paper",
                         isAdmin ? ACCENT2 : SUCCESS_C, 22),
                 vbox(3,
-                        label(isAdmin ? "Admin Access Granted" : "Welcome back!",
+                        label(isAdmin ? "Admin Access Granted" : "Welcome, User!",
                                 15, FontWeight.BOLD, isAdmin ? ACCENT2 : SUCCESS_C),
-                        label(isAdmin ? "You have full system access." : "Browse, shop, and manage your orders.",
+                        label(isAdmin ? "You have full system access including Product Management." : "Browse products, shop, and manage your orders.",
                                 12, FontWeight.NORMAL, TEXT_SEC)));
         welcomeCard.setAlignment(Pos.CENTER_LEFT);
         welcomeCard.setPadding(new Insets(18, 20, 18, 20));
