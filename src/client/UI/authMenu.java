@@ -18,6 +18,7 @@ import javafx.scene.text.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+import javafx.scene.layout.FlowPane;
 import protocol.response;
 
 public class authMenu {
@@ -40,6 +41,12 @@ public class authMenu {
 
     private Stage            stage;
     private clientConnection connection;
+
+    // ── Shared reference to dashboard main content scroll ────────────────────
+    private ScrollPane mainContentScroll;
+
+    // ── 🔒 Security indicator (shared across screens) ─────────────────────────
+    private SecurityIndicator securityIndicator;
 
     // ── Ikonli icon helper ────────────────────────────────────────────────────
     private FontIcon faIcon(String iconCode, String color, double size) {
@@ -66,6 +73,19 @@ public class authMenu {
         stage.setTitle("ChriOnline");
         stage.setMinWidth(900);
         stage.setMinHeight(620);
+
+        // ── Initialiser le SecurityIndicator et le brancher sur la connexion ──
+        this.securityIndicator = new SecurityIndicator();
+        connection.setSecurityIndicator(securityIndicator);
+
+        // Mettre à jour l'indicateur selon l'état actuel de la connexion
+        if (connection.isSecure()) {
+            // Le handshake a déjà eu lieu dans le constructeur de clientConnection
+            securityIndicator.setSecured("Active", null);
+        } else {
+            securityIndicator.setUnsecured();
+        }
+
         if (!showAuthMenu()) return;
     }
 
@@ -82,7 +102,6 @@ public class authMenu {
 
         Label tagLine = label("Your premium online shopping portal", 13, FontWeight.NORMAL, TEXT_SEC);
 
-        // Pulse animation on logo
         ScaleTransition pulse = new ScaleTransition(Duration.millis(2200), logo);
         pulse.setFromX(1.0); pulse.setToX(1.03);
         pulse.setFromY(1.0); pulse.setToY(1.03);
@@ -90,7 +109,6 @@ public class authMenu {
         pulse.setCycleCount(Animation.INDEFINITE);
         pulse.play();
 
-        // Thin accent line under branding
         Rectangle accentLine = new Rectangle(60, 3);
         accentLine.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
                 new Stop(0, Color.web(ACCENT)),
@@ -100,7 +118,6 @@ public class authMenu {
         VBox brandBox = vbox(8, logo, tagLine, accentLine);
         brandBox.setPadding(new Insets(0, 0, 28, 0));
 
-        // Login form
         Label loginTitle = label("Sign In", 20, FontWeight.BOLD, TEXT_PRI);
         Label loginSub   = label("Welcome back", 12, FontWeight.NORMAL, TEXT_SEC);
         VBox loginHeader = vbox(3, loginTitle, loginSub);
@@ -110,20 +127,22 @@ public class authMenu {
         VBox leftContent = vbox(24, brandBox, loginHeader, loginForm);
         leftContent.setPadding(new Insets(44, 40, 44, 44));
 
-        // Bottom action buttons for left panel
         Button guestBtn = glassIconBtn("fas-shopping-bag", "Browse as Guest");
         guestBtn.setOnAction(e -> showGuestProducts());
         Button exitBtn  = dangerIconBtn("fas-sign-out-alt", "Exit");
         exitBtn.setOnAction(e -> stage.close());
 
         HBox bottomBtns = new HBox(12, guestBtn, exitBtn);
-        bottomBtns.setPadding(new Insets(0, 40, 32, 44));
         HBox.setHgrow(guestBtn, Priority.ALWAYS);
         HBox.setHgrow(exitBtn,  Priority.ALWAYS);
 
+        // ── 🔒 SecurityIndicator en bas du panel gauche ───────────────────────
+        VBox leftBottom = new VBox(8, bottomBtns, securityIndicator);
+        leftBottom.setPadding(new Insets(0, 40, 24, 44));
+
         VBox leftPanel = new VBox();
         VBox.setVgrow(leftContent, Priority.ALWAYS);
-        leftPanel.getChildren().addAll(leftContent, bottomBtns);
+        leftPanel.getChildren().addAll(leftContent, leftBottom);
         leftPanel.setStyle(
             "-fx-background-color: " + PANEL_BG + ";" +
             "-fx-border-color: transparent " + DIVIDER + " transparent transparent;" +
@@ -137,7 +156,6 @@ public class authMenu {
         Label regSub   = label("Join ChriOnline today", 12, FontWeight.NORMAL, TEXT_SEC);
         VBox regHeader = vbox(3, regTitle, regSub);
 
-        // Thin accent line
         Rectangle accentLine2 = new Rectangle(60, 3);
         accentLine2.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
                 new Stop(0, Color.web(ACCENT2)),
@@ -156,18 +174,15 @@ public class authMenu {
         VBox.setVgrow(rightContent, Priority.ALWAYS);
         rightPanel.setStyle("-fx-background-color: " + CARD_BG + ";");
 
-        // ── Split layout ──────────────────────────────────────────────────────
         HBox splitLayout = new HBox(leftPanel, rightPanel);
         HBox.setHgrow(rightPanel, Priority.ALWAYS);
         splitLayout.setFillHeight(true);
 
-        // Outer window chrome
         StackPane root = animatedRoot(splitLayout);
 
         Scene scene = new Scene(root, 920, 640);
         scene.getStylesheets().add(buildCSS());
 
-        // Entrance animation
         FadeTransition ft = new FadeTransition(Duration.millis(500), splitLayout);
         ft.setFromValue(0); ft.setToValue(1);
         TranslateTransition tt = new TranslateTransition(Duration.millis(500), splitLayout);
@@ -303,7 +318,7 @@ public class authMenu {
         Label sidebarLogo = label("ChriOnline", 16, FontWeight.BOLD, TEXT_PRI);
         HBox sidebarBrand = new HBox(8, sidebarStar, sidebarLogo);
         sidebarBrand.setAlignment(Pos.CENTER_LEFT);
-        sidebarBrand.setPadding(new Insets(0, 0, 16, 0));
+        sidebarBrand.setPadding(new Insets(0, 0, 8, 0));
 
         Rectangle sidebarLine = new Rectangle(40, 2);
         sidebarLine.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
@@ -315,7 +330,17 @@ public class authMenu {
                 label(isAdmin ? "Admin" : "Member", 11, FontWeight.BOLD,
                         isAdmin ? ACCENT2 : SUCCESS_C));
         roleRow.setAlignment(Pos.CENTER_LEFT);
-        roleRow.setPadding(new Insets(8, 0, 20, 0));
+        roleRow.setPadding(new Insets(6, 0, 12, 0));
+
+        // ── 🔒 SecurityIndicator dans la sidebar ──────────────────────────────
+        // Créer un nouvel indicateur pour le dashboard (même état)
+        SecurityIndicator dashSecIndicator = new SecurityIndicator();
+        connection.setSecurityIndicator(dashSecIndicator);
+        if (connection.isSecure()) {
+            dashSecIndicator.setSecured("Active", null);
+        }
+        dashSecIndicator.setMaxWidth(Double.MAX_VALUE);
+        dashSecIndicator.setPadding(new Insets(4, 0, 12, 0));
 
         VBox sidebarMenu = vbox(4);
 
@@ -340,7 +365,7 @@ public class authMenu {
         Button logoutBtn = sidebarDangerBtn("fas-sign-out-alt", "Logout");
         logoutBtn.setOnAction(e -> handleLogout());
 
-        VBox sidebar = new VBox(sidebarBrand, sidebarLine, roleRow, sidebarMenu, logoutBtn);
+        VBox sidebar = new VBox(sidebarBrand, sidebarLine, roleRow, dashSecIndicator, sidebarMenu, logoutBtn);
         sidebar.setPadding(new Insets(28, 16, 24, 20));
         sidebar.setStyle(
             "-fx-background-color: " + PANEL_BG + ";" +
@@ -352,68 +377,12 @@ public class authMenu {
         VBox.setVgrow(sidebarMenu, Priority.ALWAYS);
 
         // ── Main content area ─────────────────────────────────────────────────
-        Label dashTitle = glowLabel("Dashboard", 26, FontWeight.BOLD);
-        Label dashSub   = label("Manage your account and orders", 13, FontWeight.NORMAL, TEXT_SEC);
-        VBox dashHeader = vbox(4, dashTitle, dashSub);
-        dashHeader.setPadding(new Insets(0, 0, 24, 0));
+        mainContentScroll = new ScrollPane(buildDashboardContent(isAdmin));
+        mainContentScroll.setFitToWidth(true);
+        mainContentScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
 
-        // Welcome card
-        HBox welcomeCard = new HBox(14,
-                faIcon(isAdmin ? "fas-bolt" : "fas-hand-paper",
-                        isAdmin ? ACCENT2 : SUCCESS_C, 22),
-                vbox(3,
-                        label(isAdmin ? "Admin Access Granted" : "Welcome back!",
-                                15, FontWeight.BOLD, isAdmin ? ACCENT2 : SUCCESS_C),
-                        label(isAdmin ? "You have full system access." : "Browse, shop, and manage your orders.",
-                                12, FontWeight.NORMAL, TEXT_SEC)));
-        welcomeCard.setAlignment(Pos.CENTER_LEFT);
-        welcomeCard.setPadding(new Insets(18, 20, 18, 20));
-        welcomeCard.setStyle(
-            "-fx-background-color: rgba(124,111,253,0.08);" +
-            "-fx-border-color: " + BORDER + ";" +
-            "-fx-border-radius: 12;" +
-            "-fx-background-radius: 12;"
-        );
-
-        // Quick-action grid (2 columns)
-        GridPane quickGrid = new GridPane();
-        quickGrid.setHgap(12); quickGrid.setVgap(12);
-        quickGrid.getColumnConstraints().addAll(
-                colConstraint(), colConstraint());
-
-        String[][] quickItems = {
-            {"fas-shopping-bag",  "Catalog",      "Browse products"},
-            {"fas-shopping-cart", "Cart",         "View your basket"},
-            {"fas-cube",          "Orders",       "Track your orders"},
-            {"fas-credit-card",   "Payments",     "Billing history"},
-        };
-        Runnable[] quickActions = {
-            () -> showProductList(),
-            () -> new cartMenu(connection, null).show(),
-            () -> new orderMenu(connection, null).show(),
-            () -> new paymentMenu(connection, null).show(),
-        };
-        String[] quickIcons = {
-            "fas-shopping-bag", "fas-shopping-cart",
-            "fas-cube", "fas-credit-card",
-        };
-
-        for (int i = 0; i < 4; i++) {
-            final int idx = i;
-            Button card = quickActionCard(quickIcons[i], quickItems[i][1], quickItems[i][2]);
-            card.setOnAction(e -> quickActions[idx].run());
-            quickGrid.add(card, i % 2, i / 2);
-        }
-
-        VBox mainContent = vbox(20, dashHeader, welcomeCard, quickGrid);
-        mainContent.setPadding(new Insets(36, 36, 36, 32));
-
-        ScrollPane mainScroll = new ScrollPane(mainContent);
-        mainScroll.setFitToWidth(true);
-        mainScroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
-
-        HBox dashLayout = new HBox(sidebar, mainScroll);
-        HBox.setHgrow(mainScroll, Priority.ALWAYS);
+        HBox dashLayout = new HBox(sidebar, mainContentScroll);
+        HBox.setHgrow(mainContentScroll, Priority.ALWAYS);
         dashLayout.setFillHeight(true);
 
         FadeTransition ft = new FadeTransition(Duration.millis(400), dashLayout);
@@ -551,18 +520,97 @@ public class authMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void showUserInfo() {
         Stage dlg = dialogStage("User Information");
-        Label title  = glowLabel("USER INFORMATION", 16, FontWeight.BOLD);
-        TextArea area = fancyReadonlyArea("Loading…");
-        new Thread(() -> {
-            response res = connection.getUserInfo();
-            Platform.runLater(() ->
-                area.setText(res.isSuccess()
-                    ? res.getMessage().replace("\\n", "\n")
-                    : "Unable to load user info.\nError: " + res.getMessage()));
-        }).start();
+        Label title = glowLabel("USER INFORMATION", 16, FontWeight.BOLD);
+        Label loadingLbl = label("Loading…", 13, FontWeight.NORMAL, TEXT_SEC);
+
+        VBox infoBox = vbox(10);
+
         Button ok = gradientIconBtn("fas-check", "Close");
         ok.setOnAction(e -> dlg.close());
-        dlg.setScene(new Scene(animatedRoot(fancyCard(vbox(16, title, area, ok))), 520, 440));
+
+        VBox contentBox = vbox(20, title, loadingLbl, ok);
+        contentBox.setPadding(new Insets(28));
+        contentBox.setStyle("-fx-background-color: " + CARD_BG + "; -fx-background-radius: 16;");
+
+        new Thread(() -> {
+            response res = connection.getUserInfo();
+            Platform.runLater(() -> {
+                contentBox.getChildren().remove(loadingLbl);
+                contentBox.getChildren().add(1, infoBox);
+
+                if (!res.isSuccess()) {
+                    infoBox.getChildren().add(label("Unable to load user info: " + res.getMessage(), 13, FontWeight.NORMAL, ERROR_C));
+                    return;
+                }
+
+                String[][] fieldDefs = {
+                    {"fas-user",        "Username",  "username"},
+                    {"fas-envelope",    "Email",     "email"},
+                    {"fas-map-marker-alt","Address", "address"},
+                    {"fas-phone",       "Phone",     "phone"},
+                    {"fas-shield-alt",  "Role",      "role"},
+                };
+
+                String raw = res.getMessage().replace("\\n", "\n");
+
+                for (String[] def : fieldDefs) {
+                    String iconCode = def[0];
+                    String labelTxt = def[1];
+                    String key      = def[2];
+
+                    String value = "—";
+                    for (String line : raw.split("\n")) {
+                        String stripped = line.replaceAll("[^\\x20-\\x7E]", "").trim();
+                        if (stripped.toLowerCase().contains(labelTxt.toLowerCase() + ":")) {
+                            int idx = stripped.indexOf(":");
+                            if (idx >= 0) { value = stripped.substring(idx + 1).trim(); break; }
+                        }
+                    }
+
+                    boolean isRole = key.equals("role");
+                    String valueColor = isRole
+                        ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C)
+                        : TEXT_PRI;
+                    String iconColor = isRole
+                        ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C)
+                        : ACCENT2;
+
+                    FontIcon iv = faIcon(iconCode, iconColor, 14);
+                    StackPane iconWrap = new StackPane(iv);
+                    iconWrap.setMinSize(32, 32);
+                    iconWrap.setMaxSize(32, 32);
+                    iconWrap.setStyle(
+                        "-fx-background-color: rgba(124,111,253,0.12);" +
+                        "-fx-background-radius: 8;"
+                    );
+
+                    Label keyLbl = label(labelTxt, 11, FontWeight.BOLD, TEXT_SEC);
+                    Label valLbl = label(value, 14, FontWeight.BOLD, valueColor);
+
+                    VBox textCol = vbox(2, keyLbl, valLbl);
+                    HBox.setHgrow(textCol, Priority.ALWAYS);
+
+                    HBox row = new HBox(12, iconWrap, textCol);
+                    row.setAlignment(Pos.CENTER_LEFT);
+                    row.setPadding(new Insets(12, 16, 12, 16));
+                    row.setStyle(
+                        "-fx-background-color: rgba(255,255,255,0.03);" +
+                        "-fx-border-color: " + BORDER + ";" +
+                        "-fx-border-radius: 10;" +
+                        "-fx-background-radius: 10;"
+                    );
+                    row.setOnMouseEntered(e -> row.setStyle(row.getStyle().replace("rgba(255,255,255,0.03)", "rgba(124,111,253,0.10)")));
+                    row.setOnMouseExited (e -> row.setStyle(row.getStyle().replace("rgba(124,111,253,0.10)", "rgba(255,255,255,0.03)")));
+
+                    FadeTransition ft = new FadeTransition(Duration.millis(250 + infoBox.getChildren().size() * 60L), row);
+                    ft.setFromValue(0); ft.setToValue(1);
+                    infoBox.getChildren().add(row);
+                    ft.play();
+                }
+            });
+        }).start();
+
+        dlg.setScene(new Scene(animatedRoot(contentBox), 480, 460));
         dlg.show();
     }
 
@@ -571,18 +619,90 @@ public class authMenu {
     // ══════════════════════════════════════════════════════════════════════════
     private void getProfile() {
         Stage dlg = dialogStage("Your Profile");
-        Label title  = glowLabel("YOUR PROFILE", 16, FontWeight.BOLD);
-        TextArea area = fancyReadonlyArea("Loading…");
-        new Thread(() -> {
-            response res = connection.getProfile();
-            Platform.runLater(() ->
-                area.setText(res.isSuccess()
-                    ? res.getMessage().replace("\\n", "\n")
-                    : "Unable to load profile.\nError: " + res.getMessage()));
-        }).start();
+        Label title = glowLabel("YOUR PROFILE", 16, FontWeight.BOLD);
+        Label loadingLbl = label("Loading…", 13, FontWeight.NORMAL, TEXT_SEC);
+
+        VBox infoBox = vbox(10);
+
         Button ok = gradientIconBtn("fas-check", "Close");
         ok.setOnAction(e -> dlg.close());
-        dlg.setScene(new Scene(animatedRoot(fancyCard(vbox(16, title, area, ok))), 520, 440));
+
+        VBox contentBox = vbox(20, title, loadingLbl, ok);
+        contentBox.setPadding(new Insets(28));
+        contentBox.setStyle("-fx-background-color: " + CARD_BG + "; -fx-background-radius: 16;");
+
+        new Thread(() -> {
+            response res = connection.getProfile();
+            Platform.runLater(() -> {
+                contentBox.getChildren().remove(loadingLbl);
+                contentBox.getChildren().add(1, infoBox);
+
+                if (!res.isSuccess()) {
+                    infoBox.getChildren().add(label("Unable to load profile: " + res.getMessage(), 13, FontWeight.NORMAL, ERROR_C));
+                    return;
+                }
+
+                String[][] fieldDefs = {
+                    {"fas-user",          "Username",  "username"},
+                    {"fas-envelope",      "Email",     "email"},
+                    {"fas-map-marker-alt","Address",   "address"},
+                    {"fas-phone",         "Phone",     "phone"},
+                    {"fas-shield-alt",    "Role",      "role"},
+                };
+
+                String raw = res.getMessage().replace("\\n", "\n");
+
+                for (String[] def : fieldDefs) {
+                    String iconCode = def[0];
+                    String labelTxt = def[1];
+                    String key      = def[2];
+
+                    String value = "—";
+                    for (String line : raw.split("\n")) {
+                        String stripped = line.replaceAll("[^\\x20-\\x7E]", "").trim();
+                        if (stripped.toLowerCase().contains(labelTxt.toLowerCase() + ":")) {
+                            int idx = stripped.indexOf(":");
+                            if (idx >= 0) { value = stripped.substring(idx + 1).trim(); break; }
+                        }
+                    }
+
+                    boolean isRole = key.equals("role");
+                    String valueColor = isRole ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C) : TEXT_PRI;
+                    String iconColor  = isRole ? (value.equalsIgnoreCase("ADMIN") ? ACCENT2 : SUCCESS_C) : ACCENT2;
+
+                    FontIcon iv = faIcon(iconCode, iconColor, 14);
+                    StackPane iconWrap = new StackPane(iv);
+                    iconWrap.setMinSize(32, 32);
+                    iconWrap.setMaxSize(32, 32);
+                    iconWrap.setStyle("-fx-background-color: rgba(124,111,253,0.12); -fx-background-radius: 8;");
+
+                    Label keyLbl = label(labelTxt, 11, FontWeight.BOLD, TEXT_SEC);
+                    Label valLbl = label(value,    14, FontWeight.BOLD, valueColor);
+
+                    VBox textCol = vbox(2, keyLbl, valLbl);
+                    HBox.setHgrow(textCol, Priority.ALWAYS);
+
+                    HBox row = new HBox(12, iconWrap, textCol);
+                    row.setAlignment(Pos.CENTER_LEFT);
+                    row.setPadding(new Insets(12, 16, 12, 16));
+                    row.setStyle(
+                        "-fx-background-color: rgba(255,255,255,0.03);" +
+                        "-fx-border-color: " + BORDER + ";" +
+                        "-fx-border-radius: 10;" +
+                        "-fx-background-radius: 10;"
+                    );
+                    row.setOnMouseEntered(e -> row.setStyle(row.getStyle().replace("rgba(255,255,255,0.03)", "rgba(124,111,253,0.10)")));
+                    row.setOnMouseExited (e -> row.setStyle(row.getStyle().replace("rgba(124,111,253,0.10)", "rgba(255,255,255,0.03)")));
+
+                    FadeTransition ft = new FadeTransition(Duration.millis(250 + infoBox.getChildren().size() * 60L), row);
+                    ft.setFromValue(0); ft.setToValue(1);
+                    infoBox.getChildren().add(row);
+                    ft.play();
+                }
+            });
+        }).start();
+
+        dlg.setScene(new Scene(animatedRoot(contentBox), 480, 460));
         dlg.show();
     }
 
@@ -697,23 +817,317 @@ public class authMenu {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
+    //  buildDashboardContent
+    // ══════════════════════════════════════════════════════════════════════════
+    private VBox buildDashboardContent(boolean isAdmin) {
+        Label dashTitle = glowLabel("Dashboard", 26, FontWeight.BOLD);
+        Label dashSub   = label("Manage your account and orders", 13, FontWeight.NORMAL, TEXT_SEC);
+        VBox dashHeader = vbox(4, dashTitle, dashSub);
+        dashHeader.setPadding(new Insets(0, 0, 24, 0));
+
+        HBox welcomeCard = new HBox(14,
+                faIcon(isAdmin ? "fas-bolt" : "fas-hand-paper",
+                        isAdmin ? ACCENT2 : SUCCESS_C, 22),
+                vbox(3,
+                        label(isAdmin ? "Admin Access Granted" : "Welcome back!",
+                                15, FontWeight.BOLD, isAdmin ? ACCENT2 : SUCCESS_C),
+                        label(isAdmin ? "You have full system access." : "Browse, shop, and manage your orders.",
+                                12, FontWeight.NORMAL, TEXT_SEC)));
+        welcomeCard.setAlignment(Pos.CENTER_LEFT);
+        welcomeCard.setPadding(new Insets(18, 20, 18, 20));
+        welcomeCard.setStyle(
+            "-fx-background-color: rgba(124,111,253,0.08);" +
+            "-fx-border-color: " + BORDER + ";" +
+            "-fx-border-radius: 12;" +
+            "-fx-background-radius: 12;"
+        );
+
+        GridPane quickGrid = new GridPane();
+        quickGrid.setHgap(12); quickGrid.setVgap(12);
+        quickGrid.getColumnConstraints().addAll(colConstraint(), colConstraint());
+
+        String[][] quickItems = {
+            {"fas-shopping-bag",  "Catalog",  "Browse products"},
+            {"fas-shopping-cart", "Cart",     "View your basket"},
+            {"fas-cube",          "Orders",   "Track your orders"},
+            {"fas-credit-card",   "Payments", "Billing history"},
+        };
+        Runnable[] quickActions = {
+            () -> showProductList(),
+            () -> new cartMenu(connection, null).show(),
+            () -> new orderMenu(connection, null).show(),
+            () -> new paymentMenu(connection, null).show(),
+        };
+        String[] quickIcons = {
+            "fas-shopping-bag", "fas-shopping-cart",
+            "fas-cube", "fas-credit-card",
+        };
+
+        for (int i = 0; i < 4; i++) {
+            final int idx = i;
+            Button card = quickActionCard(quickIcons[i], quickItems[i][1], quickItems[i][2]);
+            card.setOnAction(e -> quickActions[idx].run());
+            quickGrid.add(card, i % 2, i / 2);
+        }
+
+        VBox content = vbox(20, dashHeader, welcomeCard, quickGrid);
+        content.setPadding(new Insets(36, 36, 36, 32));
+        return content;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
     //  showProductList
     // ══════════════════════════════════════════════════════════════════════════
     private void showProductList() {
-        Stage dlg = dialogStage("Product Catalog");
-        Label title  = glowLabel("Product Catalog", 16, FontWeight.BOLD);
-        TextArea area = fancyReadonlyArea("Loading products…");
+        if (mainContentScroll == null) return;
+
+        Label title      = glowLabel("Product Catalog", 20, FontWeight.BOLD);
+        Label dashSub    = label("Browse all available products", 13, FontWeight.NORMAL, TEXT_SEC);
+
+        Button backBtn = glassIconBtn("fas-arrow-left", "Back to Dashboard");
+        backBtn.setMaxWidth(Double.MAX_VALUE);
+        backBtn.setOnAction(e -> {
+            boolean isAdmin = connection.isAdmin();
+            VBox dashContent = buildDashboardContent(isAdmin);
+            FadeTransition backFt = new FadeTransition(Duration.millis(250), dashContent);
+            backFt.setFromValue(0); backFt.setToValue(1);
+            mainContentScroll.setContent(dashContent);
+            mainContentScroll.setVvalue(0);
+            backFt.play();
+        });
+
+        VBox  pageHeader = vbox(8, backBtn, title, dashSub);
+        pageHeader.setPadding(new Insets(0, 0, 16, 0));
+
+        Label loadingLbl = label("Loading products…", 13, FontWeight.NORMAL, TEXT_SEC);
+
+        FlowPane cardsPane = new FlowPane();
+        cardsPane.setHgap(14);
+        cardsPane.setVgap(14);
+        cardsPane.setPadding(new Insets(4, 0, 4, 0));
+        cardsPane.setPrefWrapLength(600);
+
+        VBox contentBox = vbox(16, pageHeader, loadingLbl, cardsPane);
+        contentBox.setPadding(new Insets(36, 36, 36, 32));
+
+        mainContentScroll.setContent(contentBox);
+        mainContentScroll.setVvalue(0);
+
+        FadeTransition ft = new FadeTransition(Duration.millis(300), contentBox);
+        ft.setFromValue(0); ft.setToValue(1);
+        ft.play();
+
         new Thread(() -> {
             response res = connection.listProducts();
-            Platform.runLater(() ->
-                area.setText(res.isSuccess()
-                    ? res.getMessage().replace("\\n", "\n")
-                    : "Unable to load products: " + res.getMessage()));
+            Platform.runLater(() -> {
+                contentBox.getChildren().remove(loadingLbl);
+
+                if (!res.isSuccess()) {
+                    cardsPane.getChildren().add(label("Unable to load products: " + res.getMessage(), 13, FontWeight.NORMAL, ERROR_C));
+                    return;
+                }
+
+                String raw = res.getMessage().replace("\\n", "\n");
+                String[] lines = raw.split("\n");
+
+                for (String line : lines) {
+                    if (!line.contains("|")) continue;
+                    String stripped = line.replaceAll("[^\\x20-\\x7E]", " ").replaceAll("\\s+", " ").trim();
+                    String[] parts = stripped.split("\\|");
+                    if (parts.length < 4) continue;
+
+                    String fId    = parts[0].replaceAll("[^0-9]", "").trim();
+                    if (fId.isEmpty()) continue;
+                    String fName  = parts[1].trim();
+                    String fPrice = parts[2].replaceAll("[^0-9.,]", "").trim();
+                    String fCat   = parts[3].trim();
+                    String fStock = parts.length > 4 ? parts[4].replaceAll("[^0-9]", "").trim() : "?";
+
+                    String[] catKeys  = {"smartphone","laptop","audio","keyboard","mouse","accessori"};
+                    String[] catIcons = {"fas-mobile-alt","fas-laptop","fas-headphones","fas-keyboard","fas-mouse-pointer","fas-box"};
+                    String iconCode = "fas-box";
+                    for (int k = 0; k < catKeys.length; k++) {
+                        if (fCat.toLowerCase().contains(catKeys[k]) || fName.toLowerCase().contains(catKeys[k])) {
+                            iconCode = catIcons[k]; break;
+                        }
+                    }
+
+                    FontIcon icon = faIcon(iconCode, ACCENT2, 28);
+                    StackPane iconBg = new StackPane(icon);
+                    iconBg.setMinSize(52, 52);
+                    iconBg.setMaxSize(52, 52);
+                    iconBg.setStyle("-fx-background-color: rgba(124,111,253,0.15); -fx-background-radius: 14;");
+
+                    Label nameLbl  = label(fName,        13, FontWeight.BOLD,   TEXT_PRI);
+                    Label catLbl   = label(fCat,         11, FontWeight.NORMAL, TEXT_SEC);
+                    Label priceLbl = label("$" + fPrice, 16, FontWeight.BOLD,   ACCENT2);
+                    priceLbl.setEffect(new DropShadow(8, Color.web(GLOW)));
+
+                    HBox stockRow = new HBox(5, faIcon("fas-cubes", SUCCESS_C, 10),
+                            label("Stock: " + fStock, 11, FontWeight.NORMAL, SUCCESS_C));
+                    stockRow.setAlignment(Pos.CENTER_LEFT);
+
+                    HBox idRow = new HBox(4, faIcon("fas-tag", TEXT_SEC, 10),
+                            label("ID " + fId, 10, FontWeight.NORMAL, TEXT_SEC));
+                    idRow.setAlignment(Pos.CENTER_LEFT);
+
+                    VBox info = vbox(4, nameLbl, catLbl, priceLbl, stockRow, idRow);
+                    HBox.setHgrow(info, Priority.ALWAYS);
+
+                    HBox cardContent = new HBox(14, iconBg, info);
+                    cardContent.setAlignment(Pos.CENTER_LEFT);
+                    cardContent.setPadding(new Insets(16));
+
+                    VBox card = new VBox(cardContent);
+                    card.setPrefWidth(220);
+                    card.setStyle(
+                        "-fx-background-color: rgba(255,255,255,0.04);" +
+                        "-fx-border-color: " + BORDER + ";" +
+                        "-fx-border-radius: 14;" +
+                        "-fx-background-radius: 14;" +
+                        "-fx-cursor: hand;"
+                    );
+                    card.setOnMouseEntered(ev -> {
+                        card.setStyle(card.getStyle().replace("rgba(255,255,255,0.04)", "rgba(124,111,253,0.13)"));
+                        card.setEffect(new DropShadow(16, Color.web(GLOW)));
+                    });
+                    card.setOnMouseExited(ev -> {
+                        card.setStyle(card.getStyle().replace("rgba(124,111,253,0.13)", "rgba(255,255,255,0.04)"));
+                        card.setEffect(null);
+                    });
+
+                    final int productId = Integer.parseInt(fId);
+                    card.setOnMouseClicked(ev -> showProductDetailDialog(productId, fName));
+
+                    FadeTransition cardFt = new FadeTransition(Duration.millis(300 + cardsPane.getChildren().size() * 60L), card);
+                    cardFt.setFromValue(0); cardFt.setToValue(1);
+                    cardsPane.getChildren().add(card);
+                    cardFt.play();
+                }
+                if (cardsPane.getChildren().isEmpty()) {
+                    cardsPane.getChildren().add(label("No products found.", 13, FontWeight.NORMAL, TEXT_SEC));
+                }
+            });
         }).start();
-        Button ok = gradientIconBtn("fas-check", "Close");
-        ok.setOnAction(e -> dlg.close());
-        dlg.setScene(new Scene(animatedRoot(fancyCard(vbox(16, title, area, ok))), 540, 480));
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  showProductDetailDialog
+    // ══════════════════════════════════════════════════════════════════════════
+    private void showProductDetailDialog(int productId, String productName) {
+        Stage dlg = dialogStage("Product Details");
+
+        FontIcon headerIcon = faIcon("fas-box-open", ACCENT2, 20);
+        Label title = glowLabel(productName, 16, FontWeight.BOLD);
+        HBox titleRow = new HBox(10, headerIcon, title);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+
+        Rectangle accentLine = new Rectangle(50, 2);
+        accentLine.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
+                new Stop(0, Color.web(ACCENT)), new Stop(1, Color.web(ACCENT2))));
+
+        Label loadingLbl = label("Loading details…", 12, FontWeight.NORMAL, TEXT_SEC);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(8);
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(50);
+        col1.setHgrow(Priority.ALWAYS);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setPercentWidth(50);
+        col2.setHgrow(Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
+
+        Button closeBtn = gradientIconBtn("fas-check", "Close");
+        closeBtn.setOnAction(e -> dlg.close());
+
+        VBox contentBox = vbox(12, titleRow, accentLine, loadingLbl, closeBtn);
+        contentBox.setPadding(new Insets(20));
+        contentBox.setStyle("-fx-background-color: " + CARD_BG + "; -fx-background-radius: 16;");
+
+        new Thread(() -> {
+            response res = connection.getProduct(productId);
+            Platform.runLater(() -> {
+                contentBox.getChildren().remove(loadingLbl);
+                contentBox.getChildren().add(2, grid);
+
+                if (!res.isSuccess()) {
+                    grid.add(label("Unable to load details: " + res.getMessage(), 12, FontWeight.NORMAL, ERROR_C), 0, 0, 2, 1);
+                    return;
+                }
+
+                String raw = res.getMessage().replace("\\n", "\n");
+
+                String[][] fields = {
+                    {"fas-hashtag",     "ID",          "id"},
+                    {"fas-dollar-sign", "Price",       "price"},
+                    {"fas-cubes",       "Stock",       "stock"},
+                    {"fas-tag",         "Category",    "category"},
+                    {"fas-user-shield", "Created By",  "created by"},
+                    {"fas-box",         "Name",        "name"},
+                    {"fas-align-left",  "Description", "description"},
+                };
+
+                String[] values = new String[fields.length];
+                for (int i = 0; i < fields.length; i++) {
+                    values[i] = "—";
+                    for (String line : raw.split("\n")) {
+                        String s = line.replaceAll("[^\\x20-\\x7E]", "").trim();
+                        if (s.toLowerCase().contains(fields[i][2] + ":")) {
+                            int idx = s.indexOf(":");
+                            if (idx >= 0) { values[i] = s.substring(idx + 1).trim(); break; }
+                        }
+                    }
+                }
+
+                int gridRow = 0, gridCol = 0;
+                for (int i = 0; i < 5; i++) {
+                    VBox cell = miniFieldCell(fields[i][0], fields[i][1], values[i]);
+                    FadeTransition ft = new FadeTransition(Duration.millis(180 + i * 40L), cell);
+                    ft.setFromValue(0); ft.setToValue(1); ft.play();
+                    grid.add(cell, gridCol, gridRow);
+                    gridCol++;
+                    if (gridCol == 2) { gridCol = 0; gridRow++; }
+                }
+                if (gridCol != 0) gridRow++;
+
+                for (int i = 5; i < fields.length; i++) {
+                    VBox cell = miniFieldCell(fields[i][0], fields[i][1], values[i]);
+                    cell.setMaxWidth(Double.MAX_VALUE);
+                    FadeTransition ft = new FadeTransition(Duration.millis(180 + i * 40L), cell);
+                    ft.setFromValue(0); ft.setToValue(1); ft.play();
+                    grid.add(cell, 0, gridRow, 2, 1);
+                    gridRow++;
+                }
+            });
+        }).start();
+
+        dlg.setScene(new Scene(animatedRoot(contentBox), 480, 520));
         dlg.show();
+    }
+
+    private VBox miniFieldCell(String iconCode, String key, String value) {
+        FontIcon iv = faIcon(iconCode, ACCENT2, 12);
+        Label keyLbl = label(key,   10, FontWeight.BOLD,  TEXT_SEC);
+        Label valLbl = label(value, 12, FontWeight.BOLD,  TEXT_PRI);
+        valLbl.setWrapText(true);
+
+        HBox keyRow = new HBox(5, iv, keyLbl);
+        keyRow.setAlignment(Pos.CENTER_LEFT);
+
+        VBox cell = vbox(3, keyRow, valLbl);
+        cell.setPadding(new Insets(8, 10, 8, 10));
+        cell.setMaxWidth(Double.MAX_VALUE);
+        cell.setStyle(
+            "-fx-background-color: rgba(255,255,255,0.03);" +
+            "-fx-border-color: " + BORDER + ";" +
+            "-fx-border-radius: 8;" +
+            "-fx-background-radius: 8;"
+        );
+        cell.setOnMouseEntered(e -> cell.setStyle(cell.getStyle().replace("rgba(255,255,255,0.03)", "rgba(124,111,253,0.10)")));
+        cell.setOnMouseExited (e -> cell.setStyle(cell.getStyle().replace("rgba(124,111,253,0.10)", "rgba(255,255,255,0.03)")));
+        return cell;
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -797,7 +1211,6 @@ public class authMenu {
         return sp;
     }
 
-    // ── Fields ────────────────────────────────────────────────────────────────
     private TextField fancyTextField(String prompt, String iconCode) {
         TextField f = new TextField();
         f.setPromptText(prompt);
@@ -846,7 +1259,6 @@ public class authMenu {
         return vbox(5, lbl, field);
     }
 
-    // ── Buttons ───────────────────────────────────────────────────────────────
     private Button gradientIconBtn(String iconCode, String text) {
         Button b = new Button();
         b.setGraphic(iconText(iconCode, text, "white", 14));
@@ -902,7 +1314,6 @@ public class authMenu {
         return b;
     }
 
-    // kept for compatibility with other menus
     private void addFancyMenuBtn(VBox parent, String iconCode, String title, String sub, Runnable action) {
         Button b = fancyMenuBtn(iconCode, title, sub);
         b.setOnAction(e -> { animateButtonPress(b); action.run(); });
@@ -941,12 +1352,6 @@ public class authMenu {
             b.setStyle(b.getStyle().replace("rgba(124,111,253,0.10)", "rgba(255,255,255,0.03)"));
             arrow.setIconColor(Color.web(TEXT_SEC));
         });
-        return b;
-    }
-
-    private Button adminMenuBtn(String iconCode, String title, String sub) {
-        Button b = fancyMenuBtn(iconCode, title, sub);
-        b.setStyle(b.getStyle() + "-fx-border-color: " + ACCENT + "66;");
         return b;
     }
 

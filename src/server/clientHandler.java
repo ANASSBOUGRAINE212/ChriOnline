@@ -1,10 +1,12 @@
 package server;
+
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import protocol.request;
 import protocol.response;
+import security.RSA.AESSessionKey;
 import server.handlers.authHandler;
 import server.handlers.cartHandler;
 import server.handlers.orderHandler;
@@ -15,9 +17,11 @@ public class clientHandler implements Runnable {
     private Socket clientSocket;
     private ObjectInputStream in;
     private ObjectOutputStream out;
+    private final HandshakeHandler handshakeHandler;
 
-    public clientHandler(Socket socket) {
-        this.clientSocket = socket;
+    public clientHandler(Socket socket, HandshakeHandler handshakeHandler) {
+        this.clientSocket     = socket;
+        this.handshakeHandler = handshakeHandler;
         try {
             this.out = new ObjectOutputStream(socket.getOutputStream());
             this.in  = new ObjectInputStream(socket.getInputStream());
@@ -29,6 +33,16 @@ public class clientHandler implements Runnable {
 
     @Override
     public void run() {
+        // ── Handshake RSA AVANT tout échange ──────────────────────
+        AESSessionKey sessionKey = handshakeHandler.performHandshake(in, out);
+        if (sessionKey == null) {
+            System.out.println("❌ Handshake échoué — connexion fermée: " + clientSocket.getRemoteSocketAddress());
+            cleanup();
+            return;
+        }
+        System.out.println("🔒 Canal sécurisé établi pour: " + clientSocket.getRemoteSocketAddress());
+
+        // ── Boucle normale de traitement des requêtes ─────────────
         try {
             while (true) {
                 request clientRequest = (request) in.readObject();

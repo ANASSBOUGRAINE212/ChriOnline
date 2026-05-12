@@ -63,15 +63,7 @@ public class payment {
     }
 
     public PaymentStatus simulate() {
-        // Simulate payment processing with 90% success rate
-        Random random = new Random();
-        int result = random.nextInt(100);
-        
-        if (result < 90) {
-            return PaymentStatus.COMPLETED;
-        } else {
-            return PaymentStatus.FAILED;
-        }
+        return PaymentStatus.COMPLETED;
     }
 
     public boolean refund(String paymentId) {
