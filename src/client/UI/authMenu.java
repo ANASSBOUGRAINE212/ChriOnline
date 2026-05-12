@@ -1,6 +1,7 @@
 package client.UI;
 
 import client.clientConnection;
+import client.UI.securityTestMenu;
 import org.kordamp.ikonli.javafx.FontIcon;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeSolid;
 import org.kordamp.ikonli.fontawesome5.FontAwesomeRegular;
@@ -352,6 +353,11 @@ public class authMenu {
         adminBtn.setOnAction(e -> new productMenu().show(connection, null, true));
         sidebarMenu.getChildren().add(adminBtn);
 
+        // Security Testing - NEW
+        Button securityBtn = sidebarSecurityBtn("fas-shield-alt", "Security Tests");
+        securityBtn.setOnAction(e -> new securityTestMenu().show(connection));
+        sidebarMenu.getChildren().add(securityBtn);
+
         addSidebarBtn(sidebarMenu, "fas-shopping-cart", "Shopping Cart", () -> new cartMenu(connection, null).show());
         addSidebarBtn(sidebarMenu, "fas-cube",          "My Orders",     () -> new orderMenu(connection, null).show());
         addSidebarBtn(sidebarMenu, "fas-credit-card",   "Payments",      () -> new paymentMenu(connection, null).show());
@@ -469,6 +475,12 @@ public class authMenu {
     private Button sidebarAdminBtn(String iconCode, String title) {
         Button b = sidebarBtn(iconCode, title);
         b.setStyle(b.getStyle() + "-fx-border-color: " + ACCENT + "44; -fx-border-radius: 8;");
+        return b;
+    }
+
+    private Button sidebarSecurityBtn(String iconCode, String title) {
+        Button b = sidebarBtn(iconCode, title);
+        b.setStyle(b.getStyle() + "-fx-border-color: " + SUCCESS_C + "44; -fx-border-radius: 8;");
         return b;
     }
 
