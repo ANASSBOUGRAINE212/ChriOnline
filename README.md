@@ -73,7 +73,6 @@ mvn package -Padmin
 mvn package -Pserver
 ```
 
-Or on Windows: `build-all.bat`
 
 | Jar | Command | Size |
 |---|---|---|
@@ -117,16 +116,6 @@ Unit tests live under `src/security/test`. Run via your IDE (right click `test.j
 
 35 tests total.
 
-## Performance (rough numbers)
-
-| Operation | Time |
-|---|---|
-| Password hash (PBKDF2, 65,536 iter) | ~100ms |
-| AES encrypt/decrypt (per record) | ~2ms |
-| Replay check | <1ms |
-| Audit log verify (100 entries) | ~50ms |
-| RSA handshake (once per connection) | ~50ms |
-
 ## Stack
 
 - Java 17, JavaFX 21
@@ -152,26 +141,6 @@ private static final int TCP_PORT = 5000;
 `src/server/UDPNotificationSender.java`:
 ```java
 private static final int UDP_PORT = 5001;
-```
-
-## Troubleshooting
-
-**Port already in use**
-```
-tasklist | findstr java   # Windows
-taskkill /F /PID <pid>
-
-ps aux | grep java         # Linux/Mac
-kill -9 <pid>
-```
-
-**MySQL connection failed** — check MySQL is running and `db.properties` is correct.
-
-**JavaFX runtime missing** — run via `Launcher.java` / `AdminLauncher.java`, not the main classes directly.
-
-**`javax.swing` not visible** — add to `module-info.java`:
-```java
-requires java.desktop;
 ```
 
 ## Protocol
