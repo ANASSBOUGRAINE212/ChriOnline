@@ -1,10 +1,11 @@
 package database.dao;
 
-import database.databaseConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import database.databaseConnection;
 import model.user;
 import model.user.Role;
 
@@ -132,6 +133,23 @@ public class userDao {
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
             System.err.println("Error updating password: " + e.getMessage());
+        }
+        return false;
+    }
+
+    /**
+     * Updates the password hash for a user without verifying the old password.
+     * Used when the old password has already been verified (e.g., with PBKDF2).
+     */
+    public boolean updatePasswordHash(String userId, String newHashedPassword) {
+        String updateSql = "UPDATE users SET passwordHash = ? WHERE userId = ?";
+        try (Connection conn = databaseConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setString(1, newHashedPassword);
+            ps.setString(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            System.err.println("Error updating password hash: " + e.getMessage());
         }
         return false;
     }

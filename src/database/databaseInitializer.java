@@ -10,7 +10,7 @@ public class databaseInitializer {
                 userId       VARCHAR(36)  PRIMARY KEY,
                 username     VARCHAR(50)  NOT NULL UNIQUE,
                 email        VARCHAR(100) NOT NULL UNIQUE,
-                passwordHash VARCHAR(64)  NOT NULL,
+                passwordHash VARCHAR(255) NOT NULL,
                 address      VARCHAR(255),
                 phone        VARCHAR(20),
                 role         ENUM('CLIENT','ADMIN') NOT NULL DEFAULT 'CLIENT'

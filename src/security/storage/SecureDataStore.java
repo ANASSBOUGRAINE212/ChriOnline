@@ -1,29 +1,30 @@
 package security.storage;
 
-import database.databaseConnection;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Base64;
-import javax.crypto.Cipher;
+
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
+
+import database.databaseConnection;
+import security.aes.AESCipher;
 
 /**
  * Abstracts encrypted storage of sensitive data (card numbers, order details, etc.)
  * in the database. Uses AES-256-GCM with a master key derived from a passphrase via PBKDF2.
  *
  * The DB table used is: secure_store (store_key VARCHAR PK, store_value TEXT)
- * The stored value format is: base64(salt) : base64(iv) : base64(ciphertext)
+ * The stored value format is: base64(salt) : base64(iv+ciphertext)
  */
 public class SecureDataStore {
 
-    private static final String ALGORITHM      = "AES/GCM/NoPadding";
-    private static final int    GCM_TAG_BITS   = 128;
-    private static final int    IV_BYTES        = 12;
     private static final int    SALT_BYTES      = 16;
     private static final int    KEY_BITS        = 256;
     private static final int    PBKDF2_ITERS    = 310_000;
@@ -103,23 +104,19 @@ public class SecureDataStore {
     // Crypto helpers
     // -------------------------------------------------------------------------
 
-    /** Encrypts plain text → "base64(salt):base64(iv):base64(ciphertext)" */
+    /** Encrypts plain text → "base64(salt):base64(iv+ciphertext)" */
     private String encrypt(String plaintext) {
         try {
             byte[] salt = new byte[SALT_BYTES];
             random.nextBytes(salt);
 
-            byte[] iv = new byte[IV_BYTES];
-            random.nextBytes(iv);
-
             SecretKey key = deriveKey(salt);
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
-            byte[] ciphertext = cipher.doFinal(plaintext.getBytes("UTF-8"));
+            
+            // Use AESCipher from security.aes package
+            byte[] encrypted = AESCipher.encryptGCM(plaintext.getBytes("UTF-8"), key);
 
             return Base64.getEncoder().encodeToString(salt)
-                    + SEPARATOR + Base64.getEncoder().encodeToString(iv)
-                    + SEPARATOR + Base64.getEncoder().encodeToString(ciphertext);
+                    + SEPARATOR + Base64.getEncoder().encodeToString(encrypted);
         } catch (Exception e) {
             throw new RuntimeException("SecureDataStore: encryption failed", e);
         }
@@ -129,16 +126,16 @@ public class SecureDataStore {
     private String decrypt(String stored) {
         try {
             String[] parts = stored.split(SEPARATOR);
-            if (parts.length != 3) throw new IllegalArgumentException("Invalid stored format");
+            if (parts.length != 2) throw new IllegalArgumentException("Invalid stored format");
 
             byte[] salt       = Base64.getDecoder().decode(parts[0]);
-            byte[] iv         = Base64.getDecoder().decode(parts[1]);
-            byte[] ciphertext = Base64.getDecoder().decode(parts[2]);
+            byte[] encrypted  = Base64.getDecoder().decode(parts[1]);
 
             SecretKey key = deriveKey(salt);
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_BITS, iv));
-            byte[] plainBytes = cipher.doFinal(ciphertext);
+            
+            // Use AESCipher from security.aes package
+            byte[] plainBytes = AESCipher.decryptGCM(encrypted, key);
+            
             return new String(plainBytes, "UTF-8");
         } catch (Exception e) {
             throw new RuntimeException("SecureDataStore: decryption failed", e);

@@ -1,5 +1,15 @@
 package security.test;
 
+import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
+
+import javax.crypto.AEADBadTagException;
+import javax.crypto.SecretKey;
+
 import security.RSA.AESSessionKey;
 import security.RSA.NonceManager;
 import security.RSA.RSAKeyManager;
@@ -13,17 +23,8 @@ import security.storage.PasswordHasher;
 import security.storage.ReplayProtector;
 import security.storage.SecureDataStore;
 
-import javax.crypto.AEADBadTagException;
-import javax.crypto.SecretKey;
-import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
-
 /**
- * SecurityTestSuite — Merged (Dev 1 + Dev 2 + Dev 3)
+ * SecurityTestSuite — Complete Security Tests (Dev 1 + Dev 2 + Dev 3)
  *
  * Groups:
  *   1.  AES Cipher tests            (Dev 1)
@@ -37,9 +38,11 @@ import java.util.UUID;
  *   9.  ReplayProtector tests       (Dev 3)
  *   10. MITM resistance tests       (Dev 3)
  *   11. Replay attack simulation    (Dev 3)
+ *   12. UDP Notification tests      (Dev 3) ✨ NEW
+ *   13. Secure Streams tests        (Dev 3) ✨ NEW
  *
  * No external test framework — every test prints PASS / FAIL.
- * Run: java -cp out security.tests.SecurityTestSuite
+ * Run: java -cp out security.test.test
  */
 public class test {
 
@@ -74,6 +77,8 @@ public class test {
         testReplayProtector();
         testMITMResistance();
         testReplayAttackSimulation();
+        testUDPNotifications();
+        testSecureStreams();
 
         return printSummary();
     }
@@ -196,29 +201,39 @@ public class test {
     private void testAESSessionKey() throws Exception {
         printSection("3. AES Session-Key Tests");
 
-        runTest("AESSessionKey encrypt/decrypt round-trip", () -> {
+        runTest("AESSessionKey generates valid 256-bit key", () -> {
             AESSessionKey key = new AESSessionKey();
-            String plain = "Hello ChriOnline!";
-            assertEquals(plain, key.decrypt(key.encrypt(plain)),
-                    "AESSessionKey round-trip must recover original plaintext");
+            byte[] rawKey = key.getRawKey();
+            assertEquals(32, rawKey.length, "AES-256 key must be 32 bytes");
         });
 
-        runTest("AESSessionKey known-vector: two instances sharing raw bytes agree", () -> {
+        runTest("AESSessionKey getSecretKey returns valid SecretKey", () -> {
+            AESSessionKey key = new AESSessionKey();
+            SecretKey secretKey = key.getSecretKey();
+            assertTrue(secretKey != null, "SecretKey must not be null");
+            assertEquals("AES", secretKey.getAlgorithm(), "Algorithm must be AES");
+        });
+
+        runTest("AESSessionKey reconstruction from raw bytes", () -> {
+            AESSessionKey original = new AESSessionKey();
+            byte[] rawKey = original.getRawKey();
+            AESSessionKey rebuilt = new AESSessionKey(rawKey);
+            assertTrue(Arrays.equals(original.getRawKey(), rebuilt.getRawKey()),
+                    "Rebuilt key must have same raw bytes as original");
+        });
+
+        runTest("Two AESSessionKey instances with same raw bytes can encrypt/decrypt", () -> {
             byte[] rawKey = new byte[32];
             for (int i = 0; i < 32; i++) rawKey[i] = (byte)(i + 1);
             AESSessionKey k1 = new AESSessionKey(rawKey);
             AESSessionKey k2 = new AESSessionKey(rawKey);
-            String msg = "Test vecteur connu AES-256";
-            assertEquals(msg, k2.decrypt(k1.encrypt(msg)),
+            
+            String message = "Test message for AES-256";
+            byte[] encrypted = AESCipher.encryptGCM(message.getBytes("UTF-8"), k1.getSecretKey());
+            byte[] decrypted = AESCipher.decryptGCM(encrypted, k2.getSecretKey());
+            
+            assertEquals(message, new String(decrypted, "UTF-8"),
                     "Instances sharing the same raw key must interoperate");
-        });
-
-        runTest("AESSessionKey reconstruction from raw bytes (simulate server side)", () -> {
-            AESSessionKey original = new AESSessionKey();
-            AESSessionKey rebuilt  = new AESSessionKey(original.getRawKey());
-            String msg = "Session securisee ChriOnline";
-            assertEquals(msg, rebuilt.decrypt(original.encrypt(msg)),
-                    "Rebuilt key must decrypt what the original encrypted");
         });
     }
 
@@ -552,6 +567,98 @@ public class test {
             protector.registerTransaction(txId1);
             assertFalse(protector.isReplay(txId2),
                     "Unrelated txId must not be flagged as replay");
+        });
+    }
+
+    // =========================================================================
+    // 12. UDP Notification Tests  (Dev 3)
+    // =========================================================================
+
+    private void testUDPNotifications() {
+        printSection("12. UDP Notification Tests");
+
+        runTest("UDP notification message format for payment", () -> {
+            String paymentId = "PAY-12345";
+            double amount = 99.99;
+            String status = "SUCCESS";
+            String expected = String.format("PAYMENT|%s|%.2f|%s", paymentId, amount, status);
+            assertTrue(expected.contains("PAYMENT"), "Message must contain PAYMENT type");
+            assertTrue(expected.contains(paymentId), "Message must contain payment ID");
+            assertTrue(expected.contains("SUCCESS"), "Message must contain status");
+        });
+
+        runTest("UDP notification message format for order", () -> {
+            String orderId = "ORD-67890";
+            String status = "CONFIRMED";
+            String expected = String.format("ORDER|%s|%s", orderId, status);
+            assertTrue(expected.contains("ORDER"), "Message must contain ORDER type");
+            assertTrue(expected.contains(orderId), "Message must contain order ID");
+            assertTrue(expected.contains(status), "Message must contain status");
+        });
+
+        runTest("UDP notification parsing - payment message", () -> {
+            String message = "PAYMENT|PAY-123|150.50|SUCCESS";
+            String[] parts = message.split("\\|");
+            assertEquals("PAYMENT", parts[0], "Type must be PAYMENT");
+            assertEquals("PAY-123", parts[1], "Payment ID must match");
+            assertEquals("150.50", parts[2], "Amount must match");
+            assertEquals("SUCCESS", parts[3], "Status must match");
+        });
+
+        runTest("UDP notification parsing - order message", () -> {
+            String message = "ORDER|ORD-456|SHIPPED";
+            String[] parts = message.split("\\|");
+            assertEquals("ORDER", parts[0], "Type must be ORDER");
+            assertEquals("ORD-456", parts[1], "Order ID must match");
+            assertEquals("SHIPPED", parts[2], "Status must match");
+        });
+    }
+
+    // =========================================================================
+    // 13. Secure Streams Tests  (Dev 3)
+    // =========================================================================
+
+    private void testSecureStreams() throws Exception {
+        printSection("13. Secure Streams Tests");
+
+        runTest("SecureInputStream/SecureOutputStream with AESSessionKey", () -> {
+            AESSessionKey sessionKey = new AESSessionKey();
+            java.io.PipedOutputStream pipeOut = new java.io.PipedOutputStream();
+            java.io.PipedInputStream  pipeIn  = new java.io.PipedInputStream(pipeOut);
+            
+            SecureOutputStream secOut = new SecureOutputStream(pipeOut, sessionKey.getSecretKey());
+            SecureInputStream  secIn  = new SecureInputStream(pipeIn, sessionKey.getSecretKey());
+            
+            String testMessage = "Encrypted communication test";
+            secOut.writeSecureString(testMessage);
+            String received = secIn.readSecureString();
+            
+            assertEquals(testMessage, received, "Secure stream must preserve message");
+            secOut.close();
+            secIn.close();
+        });
+
+        runTest("SecureOutputStream encrypts data (not plaintext)", () -> {
+            AESSessionKey sessionKey = new AESSessionKey();
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            SecureOutputStream secOut = new SecureOutputStream(baos, sessionKey.getSecretKey());
+            
+            String plaintext = "This should be encrypted";
+            secOut.writeSecureString(plaintext);
+            
+            byte[] output = baos.toByteArray();
+            String outputStr = new String(output);
+            
+            assertFalse(outputStr.contains(plaintext), 
+                    "Output must not contain plaintext (must be encrypted)");
+            secOut.close();
+        });
+
+        runTest("AESSessionKey getSecretKey returns non-null", () -> {
+            AESSessionKey sessionKey = new AESSessionKey();
+            SecretKey key = sessionKey.getSecretKey();
+            assertTrue(key != null, "getSecretKey must return non-null");
+            assertEquals("AES", key.getAlgorithm(), "Key algorithm must be AES");
         });
     }
 

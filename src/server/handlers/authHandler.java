@@ -1,14 +1,12 @@
 package server.handlers;
 
 import database.dao.userDao;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import model.user;
 import protocol.request;
 import protocol.response;
 import security.storage.AuditLogger;
+import security.storage.PasswordHasher;
 import security.storage.ReplayProtector;
 import server.sessionManager;
 
@@ -71,9 +69,8 @@ public class authHandler {
                 return new response(false, "Invalid email or password");
             }
 
-            // Use SHA-256 hash
-            String hashedPassword = hash(password);
-            if (!userObj.getPasswordHash().equals(hashedPassword)) {
+            // Use PBKDF2 password verification
+            if (!PasswordHasher.verifyPassword(password, userObj.getPasswordHash())) {
                 auditLogger.logAction(userObj.getUsername(), "LOGIN_FAILED", "Invalid password");
                 return new response(false, "Invalid email or password");
             }
@@ -136,8 +133,8 @@ public class authHandler {
             
             String userId = UUID.randomUUID().toString();
             
-            // Use SHA-256 hash
-            String hashedPassword = hash(password);
+            // Use PBKDF2 password hashing
+            String hashedPassword = PasswordHasher.hashPassword(password);
             
             user newUser = new user(userId, username, email, hashedPassword,
                                     address.trim(), phone.trim(), user.Role.CLIENT);
@@ -267,11 +264,16 @@ public class authHandler {
                 return new response(false, "User not found");
             }
             
-            // Use SHA-256 hash
-            String oldHashedPassword = hash(oldPassword);
-            String newHashedPassword = hash(newPassword);
+            // Verify old password with PBKDF2
+            if (!PasswordHasher.verifyPassword(oldPassword, userObj.getPasswordHash())) {
+                auditLogger.logAction(userObj.getUsername(), "PASSWORD_CHANGE_FAILED", "Incorrect old password");
+                return new response(false, "Current password is incorrect");
+            }
+            
+            // Hash new password with PBKDF2
+            String newHashedPassword = PasswordHasher.hashPassword(newPassword);
 
-            boolean success = userDAO.changePassword(userId, oldHashedPassword, newHashedPassword);
+            boolean success = userDAO.updatePasswordHash(userId, newHashedPassword);
             if (success) {
                 // 🔒 Audit log password change
                 auditLogger.logAction(userObj.getUsername(), "PASSWORD_CHANGED", "Password updated successfully");
@@ -279,8 +281,8 @@ public class authHandler {
                 System.out.println("✅ Password changed for user: " + userObj.getUsername());
                 return new response(true, "Password changed successfully");
             } else {
-                auditLogger.logAction(userObj.getUsername(), "PASSWORD_CHANGE_FAILED", "Incorrect old password");
-                return new response(false, "Current password is incorrect");
+                auditLogger.logAction(userObj.getUsername(), "PASSWORD_CHANGE_FAILED", "Database update failed");
+                return new response(false, "Failed to update password");
             }
         } catch (Exception e) {
             System.err.println("Change password error: " + e.getMessage());
@@ -289,15 +291,4 @@ public class authHandler {
         }
     }
 
-    private String hash(String password) {
-        try {
-            MessageDigest md     = MessageDigest.getInstance("SHA-256");
-            byte[] digest        = md.digest(password.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb     = new StringBuilder();
-            for (byte b : digest) sb.append(String.format("%02x", b));
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 not available", e);
-        }
-    }
 }

@@ -1,21 +1,27 @@
 package client;
 
-import client.UI.SecurityIndicator;
-import client.ClientHandShake;
-import security.RSA.AESSessionKey;
-
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.UUID;
+
+import client.UI.SecurityIndicator;
 import protocol.request;
 import protocol.response;
+import security.RSA.AESSessionKey;
+import security.aes.SecureInputStream;
+import security.aes.SecureOutputStream;
 
 public class clientConnection {
 
     private Socket socket;
     private ObjectOutputStream out;
     private ObjectInputStream in;
+    private SecureOutputStream secureOut;
+    private SecureInputStream secureIn;
     private String sessionToken;
     private String userRole;
     private AESSessionKey sessionKey;            // AES session key (from RSA handshake)
@@ -33,6 +39,13 @@ public class clientConnection {
 
             // RSA Handshake immediately after connection
             performHandshake();
+            
+            // After handshake, wrap streams with AES encryption
+            if (sessionKey != null) {
+                this.secureOut = new SecureOutputStream(socket.getOutputStream(), sessionKey.getSecretKey());
+                this.secureIn = new SecureInputStream(socket.getInputStream(), sessionKey.getSecretKey());
+                System.out.println("🔐 AES-256-GCM encryption activated for all communications");
+            }
 
         } catch (IOException e) {
             System.out.println("❌ Connection failed: " + e.getMessage());
@@ -81,16 +94,32 @@ public class clientConnection {
         return sessionKey != null;
     }
 
-    // ── Core send/receive ─────────────────────────────────────────
+    // ── Core send/receive with AES-256-GCM encryption ─────────────
     private response sendRequest(request req) {
         try {
-            System.out.println("📤 Sending request: " + req.getType());
-            out.writeObject(req);
-            out.flush();
-            response serverResponse = (response) in.readObject();
-            System.out.println("📥 Received response: " + (serverResponse.isSuccess() ? "SUCCESS" : "ERROR"));
+            System.out.println("📤 Sending encrypted request: " + req.getType());
+            
+            // Serialize request object to bytes
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(req);
+            oos.flush();
+            byte[] serialized = baos.toByteArray();
+            
+            // Encrypt and send with AES-256-GCM
+            secureOut.writeSecure(serialized);
+            
+            // Receive and decrypt response
+            byte[] decryptedResponse = secureIn.readSecure();
+            
+            // Deserialize response object
+            ByteArrayInputStream bais = new ByteArrayInputStream(decryptedResponse);
+            ObjectInputStream ois = new ObjectInputStream(bais);
+            response serverResponse = (response) ois.readObject();
+            
+            System.out.println("📥 Received encrypted response: " + (serverResponse.isSuccess() ? "SUCCESS" : "ERROR"));
             return serverResponse;
-        } catch (IOException | ClassNotFoundException e) {
+        } catch (Exception e) {
             System.out.println("❌ Communication error: " + e.getMessage());
             return new response(false, "Connection error: " + e.getMessage());
         }
@@ -101,6 +130,7 @@ public class clientConnection {
         request req = new request(request.LOGIN);
         req.setParam("email",    email);
         req.setParam("password", password);
+        req.setParam("txId", UUID.randomUUID().toString());
         return sendRequest(req);
     }
 
@@ -294,6 +324,7 @@ public class clientConnection {
         req.setToken(sessionToken);
         req.setParam("orderId", orderId);
         req.setParam("method",  method);
+        req.setParam("txId", UUID.randomUUID().toString());
         return sendRequest(req);
     }
 

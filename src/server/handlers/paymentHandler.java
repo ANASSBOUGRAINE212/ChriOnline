@@ -1,14 +1,22 @@
 package server.handlers;
 
+import java.net.InetAddress;
+
 import database.dao.orderDAO;
 import database.dao.paymentDAO;
 import database.dao.userDao;
-import model.*;
+import model.OrderStatus;
+import model.PaymentMethod;
+import model.PaymentStatus;
+import model.order;
+import model.payment;
+import model.user;
 import protocol.request;
 import protocol.response;
 import security.storage.AuditLogger;
 import security.storage.ReplayProtector;
 import security.storage.SecureDataStore;
+import server.UDPNotificationSender;
 import server.sessionManager;
 
 public class paymentHandler {
@@ -104,6 +112,14 @@ public class paymentHandler {
                     String.format("Payment %s processed: $%.2f via %s for order %s", 
                         pay.getPaymentId(), ord.getTotalAmount(), method, orderId));
 
+                // 📢 Send UDP notification to client
+                try {
+                    InetAddress clientAddr = InetAddress.getByName("localhost"); // TODO: Get actual client address
+                    UDPNotificationSender.sendPaymentNotification(clientAddr, pay.getPaymentId(), ord.getTotalAmount(), "SUCCESS");
+                } catch (Exception e) {
+                    System.err.println("⚠️ Failed to send UDP notification: " + e.getMessage());
+                }
+
                 System.out.println("✅ Payment processed and logged: " + pay.getPaymentId());
                 return new response(true, "Payment processed successfully|" + pay.getPaymentId());
             } else {
@@ -114,6 +130,14 @@ public class paymentHandler {
                 auditLogger.logAction(username, "PAYMENT_FAILED", 
                     String.format("Payment failed for order %s: $%.2f via %s", 
                         orderId, ord.getTotalAmount(), method));
+                
+                // 📢 Send UDP notification for failed payment
+                try {
+                    InetAddress clientAddr = InetAddress.getByName("localhost");
+                    UDPNotificationSender.sendPaymentNotification(clientAddr, pay.getPaymentId(), ord.getTotalAmount(), "FAILED");
+                } catch (Exception e) {
+                    System.err.println("⚠️ Failed to send UDP notification: " + e.getMessage());
+                }
                 
                 return new response(false, "Payment failed. Please try again.");
             }
